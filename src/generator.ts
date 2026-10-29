@@ -51,7 +51,7 @@ ${intro.en}`);
     return parts.join('\n\n');
   }
 
-  private generateSection(section: any): string {
+  private generateSection(section: { type: string; marker?: string; title?: string; content?: string }): string {
     const marker = section.marker || section.type.toUpperCase();
     let content = '';
 

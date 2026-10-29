@@ -1,0 +1,21 @@
+username: octocat
+
+intro:
+  zh: |
+    👋 你好！我是 Octocat
+    
+    GitHub 的吉祥物，开源爱好者
+  
+  en: |
+    👋 Hi! I'm Octocat
+    
+    GitHub's mascot and open source enthusiast
+
+sections:
+  - type: stats
+    marker: STATS
+    title: 📊 统计数据
+  
+  - type: languages
+    marker: LANGUAGES
+    title: 💻 编程语言

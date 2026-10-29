@@ -35,8 +35,9 @@ export class GitHubClient {
     const repos: GitHubRepo[] = [];
     let page = 1;
     const perPage = 100;
+    const maxPages = 10;
 
-    while (true) {
+    while (page <= maxPages) {
       const batch = await this.fetch<GitHubRepo[]>(
         `/users/${username}/repos?per_page=${perPage}&page=${page}&sort=updated`
       );

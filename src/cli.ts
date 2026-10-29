@@ -8,7 +8,6 @@ import { join } from 'path';
 import { loadConfig } from './config';
 import { GitHubClient } from './github';
 import { ReadmeGenerator, updateReadmeMarkers } from './generator';
-import { ProfileData } from './types';
 
 const program = new Command();
 
@@ -86,7 +85,6 @@ program
 
       spinner.text = '正在更新 README 标记部分...';
       const existingReadme = readFileSync(options.readme, 'utf-8');
-      const generator = new ReadmeGenerator(config, data);
       
       const markerSections = (config.sections || []).map(section => {
         const marker = section.marker || section.type.toUpperCase();
