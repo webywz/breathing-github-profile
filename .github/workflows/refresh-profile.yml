@@ -1,0 +1,53 @@
+name: 🔄 刷新 Profile README
+
+on:
+  schedule:
+    # 每天北京时间 8:00 (UTC 00:00) 自动刷新
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    # 支持手动触发
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    name: 刷新 README
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔧 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 📦 安装依赖
+        run: npm ci
+
+      - name: 🧪 运行测试
+        run: npm test
+
+      - name: 🔄 刷新 README
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run refresh
+
+      - name: 📤 提交更新
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          if [[ -n $(git status -s) ]]; then
+            git add README.md data/profile.json
+            git commit -m "🤖 自动更新 Profile README [skip ci]"
+            git push
+            echo "✅ README 已更新"
+          else
+            echo "✅ README 无需更新"
+          fi
