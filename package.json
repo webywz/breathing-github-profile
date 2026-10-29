@@ -1,0 +1,54 @@
+{
+  "name": "breathing-github-profile",
+  "version": "1.0.0",
+  "description": "可复用的活跃 GitHub profile README 生成器，支持每日自动刷新",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "breathing-profile": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "refresh": "tsx src/cli.ts refresh",
+    "generate": "tsx src/cli.ts generate",
+    "validate": "tsx src/cli.ts validate",
+    "lint": "eslint src --ext .ts",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "github",
+    "profile",
+    "readme",
+    "generator",
+    "automation"
+  ],
+  "author": "webywz",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "examples"
+  ],
+  "dependencies": {
+    "yaml": "^2.3.4",
+    "commander": "^11.1.0",
+    "chalk": "^4.1.2",
+    "ora": "^5.4.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "@types/jest": "^29.5.11",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "eslint": "^8.56.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.3.3",
+    "tsx": "^4.7.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

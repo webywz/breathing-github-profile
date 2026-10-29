@@ -1,0 +1,66 @@
+username: webywz
+
+intro:
+  zh: |
+    🚀 全栈开发者 | AI 爱好者 | 开源贡献者
+    
+    💡 专注于现代 Web 开发和人工智能技术
+    - 🔧 后端：Node.js (NestJS) / Python (FastAPI)
+    - 🎨 前端：React / Vue / TypeScript
+    - 🤖 AI：LangChain / Prompt Engineering
+    - 🛠 工具：GitHub Actions / Docker / Cloudflare
+    
+    📫 欢迎交流合作！
+  
+  en: |
+    🚀 Full-stack Developer | AI Enthusiast | Open Source Contributor
+    
+    💡 Focus on Modern Web Development and AI Technologies
+    - 🔧 Backend: Node.js (NestJS) / Python (FastAPI)
+    - 🎨 Frontend: React / Vue / TypeScript
+    - 🤖 AI: LangChain / Prompt Engineering
+    - 🛠 Tools: GitHub Actions / Docker / Cloudflare
+    
+    📫 Let's connect and collaborate!
+
+featuredRepos:
+  - breathing-github-profile
+  - webywz
+
+sections:
+  - type: stats
+    marker: STATS
+    title: 📊 GitHub 统计
+  
+  - type: languages
+    marker: LANGUAGES
+    title: 💻 常用语言
+  
+  - type: repos
+    marker: REPOS
+    title: 🔥 精选项目
+  
+  - type: custom
+    marker: TECH_STACK
+    title: 🛠 技术栈
+    content: |
+      ### 后端开发
+      ![Node.js](https://img.shields.io/badge/-Node.js-339933?style=flat-square&logo=node.js&logoColor=white)
+      ![NestJS](https://img.shields.io/badge/-NestJS-E0234E?style=flat-square&logo=nestjs&logoColor=white)
+      ![Python](https://img.shields.io/badge/-Python-3776AB?style=flat-square&logo=python&logoColor=white)
+      ![FastAPI](https://img.shields.io/badge/-FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)
+      
+      ### 前端开发
+      ![TypeScript](https://img.shields.io/badge/-TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
+      ![React](https://img.shields.io/badge/-React-61DAFB?style=flat-square&logo=react&logoColor=black)
+      ![Vue](https://img.shields.io/badge/-Vue-4FC08D?style=flat-square&logo=vue.js&logoColor=white)
+      
+      ### AI & 工具
+      ![LangChain](https://img.shields.io/badge/-LangChain-1C3C3C?style=flat-square&logo=chainlink&logoColor=white)
+      ![Docker](https://img.shields.io/badge/-Docker-2496ED?style=flat-square&logo=docker&logoColor=white)
+      ![GitHub Actions](https://img.shields.io/badge/-GitHub_Actions-2088FF?style=flat-square&logo=github-actions&logoColor=white)
+
+style:
+  theme: auto
+  icons: true
+  badges: true

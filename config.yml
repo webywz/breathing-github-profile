@@ -1,0 +1,25 @@
+username: webywz
+
+intro:
+  zh: |
+    🚀 全栈开发者 | AI 爱好者 | 开源贡献者
+    
+    💡 专注于现代 Web 开发和人工智能技术
+  
+  en: |
+    🚀 Full-stack Developer | AI Enthusiast | Open Source Contributor
+    
+    💡 Focus on Modern Web Development and AI Technologies
+
+sections:
+  - type: stats
+    marker: STATS
+    title: 📊 GitHub 统计
+  
+  - type: languages
+    marker: LANGUAGES
+    title: 💻 常用语言
+  
+  - type: repos
+    marker: REPOS
+    title: 🔥 精选项目

@@ -1,0 +1,17 @@
+src/
+*.test.ts
+__tests__/
+.github/
+examples/
+node_modules/
+coverage/
+.eslintrc.json
+.eslintcache
+tsconfig.json
+jest.config.js
+*.log
+.env
+.DS_Store
+data/
+config.yml
+CONTRIBUTING.md
