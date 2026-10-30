@@ -2,7 +2,6 @@ src/
 *.test.ts
 __tests__/
 .github/
-examples/
 node_modules/
 coverage/
 .eslintrc.json

@@ -2,6 +2,7 @@
 
 > 可复用的活跃 GitHub profile README 生成器，支持每日自动刷新
 
+[![npm](https://img.shields.io/npm/v/@webywz/breathing-github-profile.svg)](https://www.npmjs.com/package/@webywz/breathing-github-profile)
 [![GitHub](https://img.shields.io/github/package-json/v/webywz/breathing-github-profile)](https://github.com/webywz/breathing-github-profile)
 [![Test](https://github.com/webywz/breathing-github-profile/actions/workflows/test.yml/badge.svg)](https://github.com/webywz/breathing-github-profile/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -19,26 +20,23 @@
 
 ## 🚀 快速开始
 
-> **注意：** 本包尚未发布到 npm。请暂时从本 GitHub 仓库安装，不要使用 `npm install breathing-github-profile`（registry 上不存在该包）。
-
-### 安装
-
-**方式一：克隆仓库（推荐）**
+### 安装 · Install
 
 ```bash
-git clone https://github.com/webywz/breathing-github-profile.git
-cd breathing-github-profile
-npm install
-npm run build
+npm i -g @webywz/breathing-github-profile
+npx @webywz/breathing-github-profile --help
 ```
 
-**方式二：从 GitHub 作为依赖安装**
+CLI 二进制名仍是 `breathing-profile`。
+
+GitHub 安装（开发 / 未发布时）：
 
 ```bash
 npm install github:webywz/breathing-github-profile
+# 或克隆
+git clone https://github.com/webywz/breathing-github-profile.git
+cd breathing-github-profile && npm install && npm run build
 ```
-
-或用 `npx` 直接运行（无需先克隆）：
 
 ```bash
 npx --yes --package github:webywz/breathing-github-profile -- breathing-profile generate -c config.yml -o README.md

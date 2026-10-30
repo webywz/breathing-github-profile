@@ -1,5 +1,5 @@
 {
-  "name": "breathing-github-profile",
+  "name": "@webywz/breathing-github-profile",
   "version": "1.0.0",
   "description": "可复用的活跃 GitHub profile README 生成器，支持每日自动刷新",
   "main": "dist/index.js",
@@ -8,7 +8,7 @@
     "breathing-profile": "dist/cli.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node -e \"require('fs').chmodSync('dist/cli.js', 0o755)\"",
     "dev": "tsc --watch",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -51,5 +51,16 @@
   },
   "engines": {
     "node": ">=16.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/webywz/breathing-github-profile.git"
+  },
+  "homepage": "https://github.com/webywz/breathing-github-profile#readme",
+  "bugs": {
+    "url": "https://github.com/webywz/breathing-github-profile/issues"
   }
 }
