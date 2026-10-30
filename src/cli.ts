@@ -90,8 +90,9 @@ program
   .description('Refresh marker sections only · 只刷新 README 标记部分')
   .option('-c, --config <path>', 'Config path · 配置文件路径', 'config.yml')
   .option('-r, --readme <path>', 'README path · README 文件路径', 'README.md')
+  .option('-j, --json', 'Output JSON only · 仅输出 JSON')
   .action(async (options) => {
-    const spinner = ora('Refreshing README… · 正在刷新 README...').start();
+    const spinner = options.json ? null : ora('Refreshing README… · 正在刷新 README...').start();
 
     try {
       if (!existsSync(options.config)) {
@@ -109,10 +110,10 @@ program
       const config = loadConfig(options.config);
       const client = new GitHubClient();
 
-      spinner.text = `Fetching GitHub data for ${config.username}… · 正在获取数据...`;
+      if (spinner) spinner.text = `Fetching GitHub data for ${config.username}… · 正在获取数据...`;
       const data = await client.getProfileData(config.username);
 
-      spinner.text = 'Updating markers… · 正在更新 README 标记部分...';
+      if (spinner) spinner.text = 'Updating markers… · 正在更新 README 标记部分...';
       const existingReadme = readFileSync(options.readme, 'utf-8');
       
       const markerSections = (config.sections || []).map(section => {
@@ -149,11 +150,26 @@ program
         'utf-8'
       );
 
-      spinner.succeed(chalk.green(`✓ README refreshed / 已刷新: ${options.readme}`));
-      console.log(chalk.gray(`  Data saved / 数据已保存: ${join(dataDir, 'profile.json')}`));
+      if (options.json) {
+        console.log(JSON.stringify({
+          ok: true,
+          action: 'refreshed',
+          path: options.readme
+        }, null, 2));
+      } else {
+        spinner!.succeed(chalk.green(`✓ README refreshed / 已刷新: ${options.readme}`));
+        console.log(chalk.gray(`  Data saved / 数据已保存: ${join(dataDir, 'profile.json')}`));
+      }
     } catch (error) {
-      spinner.fail(chalk.red('Refresh failed / 刷新失败'));
-      console.error(chalk.red(`Error / 错误: ${(error as Error).message}`));
+      if (options.json) {
+        console.log(JSON.stringify({
+          ok: false,
+          error: (error as Error).message
+        }, null, 2));
+      } else {
+        spinner!.fail(chalk.red('Refresh failed / 刷新失败'));
+        console.error(chalk.red(`Error / 错误: ${(error as Error).message}`));
+      }
       process.exit(1);
     }
   });
