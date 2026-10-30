@@ -166,9 +166,13 @@ npx breathing-profile generate --quiet --json -c config.yml -o README.md  # JSON
 `--locale en` or `--locale zh` prints spinner text, success summaries, and human error messages in that language only. Omit `--locale` to keep the current bilingual EN / ZH (or EN · ZH) wording. Invalid values (`fr`, `ja`, …) are a usage error and exit non-zero. `--json` keys and shape are unchanged regardless of locale (global or per-command, same pattern as `--quiet` / `--json`).  
 `--locale en` 或 `--locale zh` 只以该语言显示 spinner、成功摘要和人类可读错误。省略 `--locale` 则保持现有中英双语。非法取值会以用法错误非零退出。无论 locale 如何，`--json` 的字段名与结构不变（全局或命令级，写法与 `--quiet` / `--json` 相同）。
 
+`init --locale zh` also localizes the post-success next-step chrome (`后续步骤` / `运行:`); command names stay `breathing-profile validate|generate`. Omit locale or `--locale en` still prints `Run:` as before.  
+`init --locale zh` 的成功后续步骤同样全中文（`后续步骤` / `运行:`），命令名不变。省略 locale 或 `--locale en` 仍显示英文 `Run:`。
+
 ```bash
 npx breathing-profile generate --locale en -c config.yml -o README.md
 npx breathing-profile --locale zh validate -c config.yml
+npx breathing-profile init --locale zh
 npx breathing-profile generate --locale zh --json -c config.yml -o README.md  # JSON unchanged
 ```
 
@@ -410,7 +414,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: npm i @webywz/breathing-github-profile@1.1.7
+      - run: npm i @webywz/breathing-github-profile@1.1.10
       - name: Refresh README
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

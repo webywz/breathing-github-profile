@@ -44,6 +44,36 @@ export function cliText(
   return parts.both;
 }
 
+/** Post-success next-step lines for `init` (command names stay English). */
+export function initNextStepLines(
+  locale: Locale | undefined,
+  outputPath: string
+): string[] {
+  const heading = cliText(locale, {
+    both: '  Next steps / 后续步骤:',
+    en: '  Next steps:',
+    zh: '  后续步骤:'
+  });
+  const edit = cliText(locale, {
+    both:
+      `  1. Edit ${outputPath} with your GitHub username\n` +
+      `     编辑 ${outputPath}，填入你的 GitHub 用户名`,
+    en: `  1. Edit ${outputPath} with your GitHub username`,
+    zh: `  1. 编辑 ${outputPath}，填入你的 GitHub 用户名`
+  }).split('\n');
+  const runValidate = cliText(locale, {
+    both: '  2. Run: breathing-profile validate',
+    en: '  2. Run: breathing-profile validate',
+    zh: '  2. 运行: breathing-profile validate'
+  });
+  const runGenerate = cliText(locale, {
+    both: '  3. Run: breathing-profile generate',
+    en: '  3. Run: breathing-profile generate',
+    zh: '  3. 运行: breathing-profile generate'
+  });
+  return [heading, ...edit, runValidate, runGenerate];
+}
+
 export function errorText(error: unknown, locale?: Locale): string {
   if (error instanceof BilingualError) {
     return error.format(locale);
