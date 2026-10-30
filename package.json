@@ -1,6 +1,6 @@
 {
   "name": "@webywz/breathing-github-profile",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "可复用的活跃 GitHub profile README 生成器，支持每日自动刷新",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
