@@ -1,4 +1,4 @@
-import { existsSync, writeFileSync, unlinkSync, readFileSync, rmSync, mkdtempSync } from 'fs';
+import { existsSync, writeFileSync, readFileSync, rmSync, mkdtempSync } from 'fs';
 import { join } from 'path';
 import { execSync } from 'child_process';
 import { tmpdir } from 'os';
@@ -29,13 +29,11 @@ describe('Refresh Command with --json', () => {
   let testDir: string;
   let testConfigPath: string;
   let testReadmePath: string;
-  let testDataDir: string;
 
   beforeEach(() => {
     testDir = mkdtempSync(join(tmpdir(), 'breathing-refresh-test-'));
     testConfigPath = join(testDir, 'config.yml');
     testReadmePath = join(testDir, 'README.md');
-    testDataDir = join(testDir, 'data');
   });
 
   afterEach(() => {
