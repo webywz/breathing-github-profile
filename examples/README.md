@@ -122,7 +122,7 @@ npx contrib-aquarium@0.1.2 generate --user YOUR_LOGIN --out assets/aquarium.svg 
 ## 💡 提示
 
 1. **标记名称**: 确保每个章节的 `marker` 唯一
-2. **GitHub Token**: 设置 `GITHUB_TOKEN` 环境变量以避免 API 速率限制
+2. **GitHub Token**: 设置 `GITHUB_TOKEN` 或 `GH_TOKEN` 环境变量以避免 API 速率限制
 3. **精选仓库**: 使用 `featuredRepos` 手动选择要展示的项目
 4. **自定义样式**: 在 `custom` 章节中使用 HTML 和 Markdown
 

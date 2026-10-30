@@ -1,11 +1,21 @@
 import { GitHubUser, GitHubRepo, ProfileData } from './types';
 
+/** Resolve token: explicit arg, then GITHUB_TOKEN, then GH_TOKEN. */
+export function resolveGithubToken(explicit?: string): string | undefined {
+  return explicit || process.env.GITHUB_TOKEN || process.env.GH_TOKEN || undefined;
+}
+
 export class GitHubClient {
   private token?: string;
   private baseUrl = 'https://api.github.com';
 
   constructor(token?: string) {
-    this.token = token || process.env.GITHUB_TOKEN;
+    this.token = resolveGithubToken(token);
+  }
+
+  /** Exposed for tests / callers that need to know if auth is set. */
+  get authToken(): string | undefined {
+    return this.token;
   }
 
   private async fetch<T>(endpoint: string): Promise<T> {
@@ -21,7 +31,7 @@ export class GitHubClient {
     const response = await fetch(`${this.baseUrl}${endpoint}`, { headers });
 
     if (!response.ok) {
-      throw new Error(`GitHub API 错误: ${response.status} ${response.statusText}`);
+      throw new Error(`GitHub API 错误 / GitHub API error: ${response.status} ${response.statusText}`);
     }
 
     return response.json() as Promise<T>;
