@@ -19,7 +19,7 @@ function runCli(
   const result = spawnSync('npx', ['tsx', cliPath, ...args], {
     encoding: 'utf-8',
     cwd,
-    env: { ...process.env, FORCE_COLOR: '0' }
+    env: { ...process.env, FORCE_COLOR: '0', NO_COLOR: '1' }
   });
   return {
     stdout: result.stdout || '',

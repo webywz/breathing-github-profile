@@ -25,6 +25,14 @@ function runGenerate(args: string = '', testDir: string): { stdout: string; stde
   }
 }
 
+function expectGenerateOk(result: { stdout: string; stderr: string; exitCode: number }): void {
+  if (result.exitCode !== 0) {
+    throw new Error(
+      `generate exited ${result.exitCode}\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`
+    );
+  }
+}
+
 describe('Generate Command with --json', () => {
   let testDir: string;
   let testConfigPath: string;
@@ -61,7 +69,7 @@ sections:
 
       const result = runGenerate(`--json -c config.yml -o README.md`, testDir);
       
-      expect(result.exitCode).toBe(0);
+      expectGenerateOk(result);
       
       const parsed = JSON.parse(result.stdout);
       expect(parsed.ok).toBe(true);
@@ -115,7 +123,7 @@ intro:
 
       const result = runGenerate(`--json -c config.yml -o README.md`, testDir);
       
-      expect(result.exitCode).toBe(0);
+      expectGenerateOk(result);
       expect(result.stdout).not.toContain('✓');
       expect(result.stdout).not.toContain('Generating');
       expect(result.stdout).not.toContain('正在生成');
@@ -135,7 +143,7 @@ intro:
 
       const result = runGenerate(`-j -c config.yml -o README.md`, testDir);
       
-      expect(result.exitCode).toBe(0);
+      expectGenerateOk(result);
       
       const parsed = JSON.parse(result.stdout);
       expect(parsed.ok).toBe(true);
@@ -156,7 +164,7 @@ sections:
 
       const result = runGenerate('-j -c config.yml -o README.md', testDir);
       
-      expect(result.exitCode).toBe(0);
+      expectGenerateOk(result);
       expect(() => JSON.parse(result.stdout)).not.toThrow();
       
       const parsed = JSON.parse(result.stdout);
@@ -175,7 +183,7 @@ intro:
 
       const result = runGenerate(`-c config.yml -o README.md`, testDir);
       
-      expect(result.exitCode).toBe(0);
+      expectGenerateOk(result);
       
       // 验证文件生成
       expect(existsSync(testOutputPath)).toBe(true);

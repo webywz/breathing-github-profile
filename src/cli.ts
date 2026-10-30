@@ -45,9 +45,9 @@ function createSpinner(
     return { spinner: null, spinnerEnabled: false };
   }
 
-  const spinnerEnabled = !options.colorDisabled;
-  // Ora's public type has no isEnabled field — keep a local boolean and pass
-  // isEnabled only as a constructor option (TTY + FORCE_COLOR would otherwise spin).
+  // Non-TTY / CI pipes: skip ora so succeed/fail use console.log/error (stdout
+  // for success). Ora + FORCE_COLOR would otherwise write the summary to stderr.
+  const spinnerEnabled = !options.colorDisabled && Boolean(process.stderr.isTTY);
   const spinner = spinnerEnabled
     ? ora({ text })
     : ora({ text, isEnabled: false });
