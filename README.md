@@ -102,7 +102,7 @@ npx breathing-profile validate -c config.yml
 | `refresh` | Rewrite marker sections only | 只刷新标记区 |
 | `validate` | Check the config file | 校验配置 |
 
-Optional: set `GITHUB_TOKEN` (or use `secrets.GITHUB_TOKEN` in Actions) for higher API rate limits.
+Optional: set `GITHUB_TOKEN` or `GH_TOKEN` (or use `secrets.GITHUB_TOKEN` in Actions) for higher API rate limits.
 
 ---
 
@@ -190,7 +190,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: npm i @webywz/breathing-github-profile
+      - run: npm i @webywz/breathing-github-profile@1.0.1
       - name: Refresh README
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -220,7 +220,7 @@ import {
 } from '@webywz/breathing-github-profile';
 
 const config = loadConfig('config.yml');
-const client = new GitHubClient(process.env.GITHUB_TOKEN);
+const client = new GitHubClient(process.env.GITHUB_TOKEN || process.env.GH_TOKEN);
 const data = await client.getProfileData(config.username);
 const readme = new ReadmeGenerator(config, data).generate();
 ```
@@ -258,7 +258,7 @@ examples/        sample configs
 
 ## FAQ · 常见问题
 
-**Rate limits?** Set `GITHUB_TOKEN`. Actions already injects `secrets.GITHUB_TOKEN`.
+**Rate limits?** Set `GITHUB_TOKEN` or `GH_TOKEN`. Actions already injects `secrets.GITHUB_TOKEN`.
 
 **Only update part of the README?** Use `refresh`, not `generate`.
 
