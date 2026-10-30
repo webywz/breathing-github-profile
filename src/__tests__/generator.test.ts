@@ -108,6 +108,114 @@ describe('ReadmeGenerator', () => {
     expect(readme).toContain('最后更新');
     expect(readme).toContain('breathing-github-profile');
   });
+
+  it('有 title 时不出现硬编码第二标题', () => {
+    const config: ProfileConfig = {
+      username: 'testuser',
+      intro: { zh: '你好' },
+      sections: [
+        { type: 'stats', marker: 'STATS', title: '📊 统计数据' },
+        { type: 'languages', marker: 'LANGUAGES', title: '💻 常用语言' },
+        { type: 'repos', marker: 'REPOS', title: '🔥 精选项目' },
+      ],
+      featuredRepos: ['test-repo'],
+    };
+    const generator = new ReadmeGenerator(config, mockData);
+    const readme = generator.generate();
+
+    const statsBlock = readme.slice(
+      readme.indexOf('<!--STATS:START-->'),
+      readme.indexOf('<!--STATS:END-->')
+    );
+    const langBlock = readme.slice(
+      readme.indexOf('<!--LANGUAGES:START-->'),
+      readme.indexOf('<!--LANGUAGES:END-->')
+    );
+    const reposBlock = readme.slice(
+      readme.indexOf('<!--REPOS:START-->'),
+      readme.indexOf('<!--REPOS:END-->')
+    );
+
+    expect(statsBlock).toContain('## 📊 统计数据');
+    expect(statsBlock).not.toContain('## 📊 GitHub 统计');
+    expect((statsBlock.match(/^## /gm) || []).length).toBe(1);
+
+    expect(langBlock).toContain('## 💻 常用语言');
+    expect(langBlock).not.toContain('## 💻 编程语言');
+    expect((langBlock.match(/^## /gm) || []).length).toBe(1);
+
+    expect(reposBlock).toContain('## 🔥 精选项目');
+    expect((reposBlock.match(/^## /gm) || []).length).toBe(1);
+  });
+
+  it('无 title 时使用默认单标题', () => {
+    const config: ProfileConfig = {
+      username: 'testuser',
+      intro: { zh: '你好' },
+      sections: [
+        { type: 'stats', marker: 'STATS' },
+        { type: 'languages', marker: 'LANGUAGES' },
+      ],
+    };
+    const generator = new ReadmeGenerator(config, mockData);
+    const readme = generator.generate();
+
+    const statsBlock = readme.slice(
+      readme.indexOf('<!--STATS:START-->'),
+      readme.indexOf('<!--STATS:END-->')
+    );
+    expect((statsBlock.match(/^## /gm) || []).length).toBe(1);
+    expect(statsBlock).toContain('## 📊 GitHub 统计');
+  });
+
+  it('icons:false 时去掉统计表与默认标题中的 emoji', () => {
+    const config: ProfileConfig = {
+      username: 'testuser',
+      intro: { zh: '你好' },
+      style: { icons: false },
+      sections: [
+        { type: 'stats', marker: 'STATS' },
+        { type: 'repos', marker: 'REPOS' },
+      ],
+      featuredRepos: ['test-repo'],
+    };
+    const generator = new ReadmeGenerator(config, mockData);
+    const readme = generator.generate();
+
+    expect(readme).toContain('## GitHub 统计');
+    expect(readme).not.toContain('## 📊 GitHub 统计');
+    expect(readme).toContain('| 总 Stars |');
+    expect(readme).not.toContain('🌟');
+    expect(readme).toContain('## 精选项目');
+    expect(readme).not.toContain('### 📦 [');
+    expect(readme).toContain('## 关于我');
+    expect(readme).not.toContain('## 👨‍💻 关于我');
+  });
+
+  it('custom 章节有 title 时只出一个 H2', () => {
+    const config: ProfileConfig = {
+      username: 'testuser',
+      intro: { zh: '你好' },
+      sections: [
+        {
+          type: 'custom',
+          marker: 'CUSTOM',
+          title: '🛠 技术栈',
+          content: 'TypeScript · NestJS',
+        },
+      ],
+    };
+    const generator = new ReadmeGenerator(config, mockData);
+    const readme = generator.generate();
+    const block = readme.slice(
+      readme.indexOf('<!--CUSTOM:START-->'),
+      readme.indexOf('<!--CUSTOM:END-->')
+    );
+    expect(block).toContain('## 🛠 技术栈');
+    expect(block).toContain('TypeScript · NestJS');
+    expect((block.match(/^## /gm) || []).length).toBe(1);
+  });
+
 });
 
 describe('updateReadmeMarkers', () => {

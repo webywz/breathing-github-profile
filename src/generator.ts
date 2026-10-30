@@ -1,10 +1,24 @@
 import { ProfileConfig, ProfileData, MarkerSection } from './types';
 
+const DEFAULT_TITLES: Record<string, { withIcons: string; plain: string }> = {
+  stats: { withIcons: '📊 GitHub 统计', plain: 'GitHub 统计' },
+  languages: { withIcons: '💻 编程语言', plain: '编程语言' },
+  repos: { withIcons: '🔥 精选项目', plain: '精选项目' },
+};
+
 export class ReadmeGenerator {
   constructor(
     private config: ProfileConfig,
     private data: ProfileData
   ) {}
+
+  private get iconsEnabled(): boolean {
+    return this.config.style?.icons !== false;
+  }
+
+  private icon(emoji: string): string {
+    return this.iconsEnabled ? `${emoji} ` : '';
+  }
 
   generate(): string {
     const sections: string[] = [];
@@ -25,7 +39,8 @@ export class ReadmeGenerator {
 
   private generateHeader(): string {
     const { user } = this.data;
-    return `# Hi there, I'm ${user.name || user.login} 👋
+    const wave = this.iconsEnabled ? ' 👋' : '';
+    return `# Hi there, I'm ${user.name || user.login}${wave}
 
 <div align="center">
   <img src="${user.avatar_url}" width="150" height="150" alt="${user.login}" style="border-radius: 50%;" />
@@ -35,20 +50,28 @@ export class ReadmeGenerator {
   private generateIntro(): string {
     const { intro } = this.config;
     const parts: string[] = [];
+    const aboutZh = this.iconsEnabled ? '## 👨‍💻 关于我' : '## 关于我';
+    const aboutEn = this.iconsEnabled ? '## 👨‍💻 About Me' : '## About Me';
 
     if (intro.zh?.trim()) {
-      parts.push(`## 👨‍💻 关于我
+      parts.push(`${aboutZh}
 
 ${intro.zh.trim()}`);
     }
 
     if (intro.en?.trim()) {
-      parts.push(`## 👨‍💻 About Me
+      parts.push(`${aboutEn}
 
 ${intro.en.trim()}`);
     }
 
     return parts.join('\n\n');
+  }
+
+  private defaultTitle(type: string): string | undefined {
+    const entry = DEFAULT_TITLES[type];
+    if (!entry) return undefined;
+    return this.iconsEnabled ? entry.withIcons : entry.plain;
   }
 
   private generateSection(section: { type: string; marker?: string; title?: string; content?: string }): string {
@@ -72,25 +95,26 @@ ${intro.en.trim()}`);
 
     if (!content) return '';
 
+    const title = section.title?.trim() || this.defaultTitle(section.type);
+    const heading = title ? `## ${title}\n\n` : '';
+
     return `<!--${marker}:START-->
-${section.title ? `## ${section.title}\n\n` : ''}${content}
+${heading}${content}
 <!--${marker}:END-->`;
   }
 
   private generateStats(): string {
     const { user, totalStars, totalForks } = this.data;
-    
-    return `## 📊 GitHub 统计
 
-<div align="center">
+    return `<div align="center">
 
 | 统计项 | 数值 |
 |:---:|:---:|
-| 🌟 总 Stars | ${totalStars} |
-| 🍴 总 Forks | ${totalForks} |
-| 📦 公开仓库 | ${user.public_repos} |
-| 👥 关注者 | ${user.followers} |
-| 💫 正在关注 | ${user.following} |
+| ${this.icon('🌟')}总 Stars | ${totalStars} |
+| ${this.icon('🍴')}总 Forks | ${totalForks} |
+| ${this.icon('📦')}公开仓库 | ${user.public_repos} |
+| ${this.icon('👥')}关注者 | ${user.followers} |
+| ${this.icon('💫')}正在关注 | ${user.following} |
 
 </div>`;
   }
@@ -108,9 +132,7 @@ ${section.title ? `## ${section.title}\n\n` : ''}${content}
       return `| ${lang} | ${count} | ${percentage}% |`;
     }).join('\n');
 
-    return `## 💻 编程语言
-
-| 语言 | 仓库数 | 占比 |
+    return `| 语言 | 仓库数 | 占比 |
 |:---|:---:|:---:|
 ${rows}`;
   }
@@ -118,10 +140,10 @@ ${rows}`;
   private generateRepos(): string {
     const { repos } = this.data;
     const featured = this.config.featuredRepos || [];
-    
+
     let displayRepos = repos;
     if (featured.length > 0) {
-      displayRepos = repos.filter(r => 
+      displayRepos = repos.filter(r =>
         featured.some(f => r.name === f || r.full_name === f)
       );
     } else {
@@ -135,21 +157,23 @@ ${rows}`;
     const cards = displayRepos.map(repo => {
       const lang = repo.language || 'N/A';
       const desc = repo.description || '暂无描述';
-      return `### 📦 [${repo.name}](${repo.html_url})
+      const namePrefix = this.icon('📦');
+      const meta = this.iconsEnabled
+        ? `⭐ ${repo.stargazers_count} stars | 🍴 ${repo.forks_count} forks | 📝 ${lang}`
+        : `${repo.stargazers_count} stars | ${repo.forks_count} forks | ${lang}`;
+      return `### ${namePrefix}[${repo.name}](${repo.html_url})
 ${desc}
 
-⭐ ${repo.stargazers_count} stars | 🍴 ${repo.forks_count} forks | 📝 ${lang}`;
+${meta}`;
     }).join('\n\n');
 
-    return `## 🔥 精选项目
-
-${cards}`;
+    return cards;
   }
 
   private generateFooter(): string {
     const { updatedAt } = this.data;
     const date = new Date(updatedAt).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
-    
+
     return `---
 
 <div align="center">
@@ -171,7 +195,7 @@ export function updateReadmeMarkers(
   for (const { marker, content } of markerSections) {
     const startMarker = `<!--${marker}:START-->`;
     const endMarker = `<!--${marker}:END-->`;
-    
+
     const regex = new RegExp(
       `${escapeRegex(startMarker)}[\\s\\S]*?${escapeRegex(endMarker)}`,
       'g'
