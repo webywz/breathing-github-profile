@@ -2,7 +2,7 @@
 
 import { Command } from 'commander';
 import chalk from 'chalk';
-import ora from 'ora';
+import ora, { Ora } from 'ora';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { loadConfig } from './config';
@@ -11,7 +11,31 @@ import { ReadmeGenerator, updateReadmeMarkers } from './generator';
 import { readPackageVersion } from './version';
 
 function shouldDisableColor(options: { color?: boolean }): boolean {
+  // Commander maps --no-color to { color: false } on the command (and program).
   return options.color === false || !!process.env.NO_COLOR;
+}
+
+function applyNoColor(): void {
+  // FORCE_COLOR wins over NO_COLOR in chalk/supports-color; drop it so --no-color wins.
+  delete process.env.FORCE_COLOR;
+  process.env.NO_COLOR = '1';
+  chalk.level = 0;
+}
+
+function createSpinner(
+  text: string,
+  options: { json?: boolean; colorDisabled?: boolean }
+): Ora | null {
+  if (options.json) {
+    return null;
+  }
+
+  // Disable the spinner entirely so ora does not write cursor/color ANSI to stderr
+  // (TTY + FORCE_COLOR=1 would otherwise still animate even when chalk.level is 0).
+  if (options.colorDisabled) {
+    return ora({ text, isEnabled: false });
+  }
+  return ora({ text });
 }
 
 const program = new Command();
@@ -19,7 +43,8 @@ const program = new Command();
 program
   .name('breathing-profile')
   .description('Living GitHub profile README generator · 会呼吸的 GitHub profile README 生成器')
-  .version(readPackageVersion());
+  .version(readPackageVersion())
+  .option('--no-color', 'Disable colored output · 禁用彩色输出');
 
 program
   .command('generate')
@@ -29,10 +54,19 @@ program
   .option('-j, --json', 'Output JSON only · 仅输出 JSON')
   .option('--no-color', 'Disable colored output · 禁用彩色输出')
   .action(async (options) => {
-    if (shouldDisableColor(options)) {
-      chalk.level = 0;
+    const colorDisabled = shouldDisableColor({
+      color: options.color === false || program.opts().color === false ? false : options.color
+    });
+    if (colorDisabled) {
+      applyNoColor();
     }
-    const spinner = options.json ? null : ora('Generating README… · 正在生成 README...').start();
+    const spinner = createSpinner('Generating README… · 正在生成 README...', {
+      json: options.json,
+      colorDisabled
+    });
+    if (spinner) {
+      spinner.start();
+    }
 
     try {
       if (!existsSync(options.config)) {
@@ -101,10 +135,19 @@ program
   .option('-j, --json', 'Output JSON only · 仅输出 JSON')
   .option('--no-color', 'Disable colored output · 禁用彩色输出')
   .action(async (options) => {
-    if (shouldDisableColor(options)) {
-      chalk.level = 0;
+    const colorDisabled = shouldDisableColor({
+      color: options.color === false || program.opts().color === false ? false : options.color
+    });
+    if (colorDisabled) {
+      applyNoColor();
     }
-    const spinner = options.json ? null : ora('Refreshing README… · 正在刷新 README...').start();
+    const spinner = createSpinner('Refreshing README… · 正在刷新 README...', {
+      json: options.json,
+      colorDisabled
+    });
+    if (spinner) {
+      spinner.start();
+    }
 
     try {
       if (!existsSync(options.config)) {
@@ -194,8 +237,10 @@ program
   .option('-j, --json', 'Output JSON only · 仅输出 JSON')
   .option('--no-color', 'Disable colored output · 禁用彩色输出')
   .action(async (options) => {
-    if (shouldDisableColor(options)) {
-      chalk.level = 0;
+    if (shouldDisableColor({
+      color: options.color === false || program.opts().color === false ? false : options.color
+    })) {
+      applyNoColor();
     }
     try {
       const outputPath = options.output;
@@ -266,8 +311,10 @@ program
   .option('-j, --json', 'Output JSON only · 仅输出 JSON')
   .option('--no-color', 'Disable colored output · 禁用彩色输出')
   .action(async (options) => {
-    if (shouldDisableColor(options)) {
-      chalk.level = 0;
+    if (shouldDisableColor({
+      color: options.color === false || program.opts().color === false ? false : options.color
+    })) {
+      applyNoColor();
     }
     try {
       if (!existsSync(options.config)) {
