@@ -10,6 +10,10 @@ import { GitHubClient } from './github';
 import { ReadmeGenerator, updateReadmeMarkers } from './generator';
 import { readPackageVersion } from './version';
 
+function shouldDisableColor(options: { noColor?: boolean }): boolean {
+  return !!(options.noColor || process.env.NO_COLOR);
+}
+
 const program = new Command();
 
 program
@@ -23,7 +27,11 @@ program
   .option('-c, --config <path>', 'Config path · 配置文件路径', 'config.yml')
   .option('-o, --output <path>', 'Output path · 输出文件路径', 'README.md')
   .option('-j, --json', 'Output JSON only · 仅输出 JSON')
+  .option('--no-color', 'Disable colored output · 禁用彩色输出')
   .action(async (options) => {
+    if (shouldDisableColor(options)) {
+      chalk.level = 0;
+    }
     const spinner = options.json ? null : ora('Generating README… · 正在生成 README...').start();
 
     try {
@@ -91,7 +99,11 @@ program
   .option('-c, --config <path>', 'Config path · 配置文件路径', 'config.yml')
   .option('-r, --readme <path>', 'README path · README 文件路径', 'README.md')
   .option('-j, --json', 'Output JSON only · 仅输出 JSON')
+  .option('--no-color', 'Disable colored output · 禁用彩色输出')
   .action(async (options) => {
+    if (shouldDisableColor(options)) {
+      chalk.level = 0;
+    }
     const spinner = options.json ? null : ora('Refreshing README… · 正在刷新 README...').start();
 
     try {
@@ -180,7 +192,11 @@ program
   .option('-o, --output <path>', 'Output path · 输出路径', 'config.yml')
   .option('-f, --force', 'Overwrite if exists · 强制覆盖已存在的文件')
   .option('-j, --json', 'Output JSON only · 仅输出 JSON')
+  .option('--no-color', 'Disable colored output · 禁用彩色输出')
   .action(async (options) => {
+    if (shouldDisableColor(options)) {
+      chalk.level = 0;
+    }
     try {
       const outputPath = options.output;
       let action: 'created' | 'updated' | 'skipped' = 'created';
@@ -248,7 +264,11 @@ program
   .description('Validate config file · 验证配置文件')
   .option('-c, --config <path>', 'Config path · 配置文件路径', 'config.yml')
   .option('-j, --json', 'Output JSON only · 仅输出 JSON')
+  .option('--no-color', 'Disable colored output · 禁用彩色输出')
   .action(async (options) => {
+    if (shouldDisableColor(options)) {
+      chalk.level = 0;
+    }
     try {
       if (!existsSync(options.config)) {
         throw new Error(
