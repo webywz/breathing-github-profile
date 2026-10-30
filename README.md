@@ -56,7 +56,14 @@ npm run build
 
 ### 1. Config · 配置
 
-Create `config.yml`:
+Create `config.yml` with the init command, or write one manually:
+
+```bash
+npx breathing-profile init
+# Edit config.yml to replace 'octocat' with your GitHub username
+```
+
+Or create `config.yml` manually:
 
 ```yaml
 username: your-github-username
@@ -88,7 +95,18 @@ sections:
 
 Full sample: [examples/webywz.yml](examples/webywz.yml).
 
-### 2. Generate · 生成
+### 2. Initialize config · 初始化配置
+
+```bash
+npx breathing-profile init
+# Creates config.yml from the built-in demo template
+# 从内置演示模板创建 config.yml
+```
+
+Then edit `config.yml` to replace `octocat` with your GitHub username.
+然后编辑 `config.yml`，将 `octocat` 替换为你的 GitHub 用户名。
+
+### 3. Generate · 生成
 
 ```bash
 npx breathing-profile generate -c config.yml -o README.md
@@ -98,6 +116,7 @@ npx breathing-profile validate -c config.yml
 
 | Command | EN | 中文 |
 | --- | --- | --- |
+| `init` | Create a starter config.yml (use `--force` to overwrite) | 创建初始 config.yml（使用 `--force` 覆盖） |
 | `generate` | Write a full README from config + GitHub data | 按配置与 GitHub 数据生成完整 README |
 | `refresh` | Rewrite marker sections only | 只刷新标记区 |
 | `validate` | Check the config file | 校验配置 |
@@ -206,7 +225,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: npm i @webywz/breathing-github-profile@1.0.9
+      - run: npm i @webywz/breathing-github-profile@1.1.0
       - name: Refresh README
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -137,6 +137,48 @@ program
   });
 
 program
+  .command('init')
+  .description('Create a starter config.yml · 创建初始配置文件')
+  .option('-o, --output <path>', 'Output path · 输出路径', 'config.yml')
+  .option('-f, --force', 'Overwrite if exists · 强制覆盖已存在的文件')
+  .action(async (options) => {
+    try {
+      const outputPath = options.output;
+
+      if (existsSync(outputPath) && !options.force) {
+        console.error(
+          chalk.red(
+            `✗ Config already exists / 配置文件已存在: ${outputPath}\n` +
+            `  Use --force to overwrite / 使用 --force 覆盖`
+          )
+        );
+        process.exit(1);
+      }
+
+      const templatePath = join(__dirname, '..', 'examples', 'demo-config.yml');
+      
+      if (!existsSync(templatePath)) {
+        throw new Error(
+          `Template not found / 模板文件不存在: ${templatePath}`
+        );
+      }
+
+      const templateContent = readFileSync(templatePath, 'utf-8');
+      writeFileSync(outputPath, templateContent, 'utf-8');
+
+      console.log(chalk.green(`✓ Config created / 配置文件已创建: ${outputPath}`));
+      console.log(chalk.gray(`  Next steps / 后续步骤:`));
+      console.log(chalk.gray(`  1. Edit ${outputPath} with your GitHub username`));
+      console.log(chalk.gray(`     编辑 ${outputPath}，填入你的 GitHub 用户名`));
+      console.log(chalk.gray(`  2. Run: breathing-profile validate`));
+      console.log(chalk.gray(`  3. Run: breathing-profile generate`));
+    } catch (error) {
+      console.error(chalk.red(`✗ Init failed / 初始化失败: ${(error as Error).message}`));
+      process.exit(1);
+    }
+  });
+
+program
   .command('validate')
   .description('Validate config file · 验证配置文件')
   .option('-c, --config <path>', 'Config path · 配置文件路径', 'config.yml')
