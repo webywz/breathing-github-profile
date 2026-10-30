@@ -32,9 +32,9 @@ function applyNoColor(): void {
 
 function createSpinner(
   text: string,
-  options: { json?: boolean; colorDisabled?: boolean }
+  options: { json?: boolean; quiet?: boolean; colorDisabled?: boolean }
 ): { spinner: Ora | null; spinnerEnabled: boolean } {
-  if (options.json) {
+  if (options.json || options.quiet) {
     return { spinner: null, spinnerEnabled: false };
   }
 
@@ -74,10 +74,19 @@ function spinnerFail(
 
 const program = new Command();
 
+function isQuiet(options: { quiet?: boolean }): boolean {
+  return Boolean(options.quiet || program.opts().quiet);
+}
+
+function shouldPrintHuman(options: { json?: boolean; quiet?: boolean }): boolean {
+  return !options.json && !isQuiet(options);
+}
+
 program
   .name('breathing-profile')
   .description('Living GitHub profile README generator · 会呼吸的 GitHub profile README 生成器')
   .version(readPackageVersion())
+  .option('-q, --quiet', 'Suppress spinner and success summary · 静默 spinner 与成功摘要')
   .option('--no-color', 'Disable colored output · 禁用彩色输出');
 
 program
@@ -86,6 +95,7 @@ program
   .option('-c, --config <path>', 'Config path · 配置文件路径', 'config.yml')
   .option('-o, --output <path>', 'Output path · 输出文件路径', 'README.md')
   .option('-j, --json', 'Output JSON only · 仅输出 JSON')
+  .option('-q, --quiet', 'Suppress spinner and success summary · 静默 spinner 与成功摘要')
   .option('--no-color', 'Disable colored output · 禁用彩色输出')
   .action(async (options) => {
     const colorDisabled = isColorDisabled(options);
@@ -94,6 +104,7 @@ program
     }
     const { spinner, spinnerEnabled } = createSpinner('Generating README… · 正在生成 README...', {
       json: options.json,
+      quiet: isQuiet(options),
       colorDisabled
     });
     if (spinnerEnabled && spinner) {
@@ -141,7 +152,7 @@ program
           bytes,
           sections
         }, null, 2));
-      } else {
+      } else if (shouldPrintHuman(options)) {
         spinnerSucceed(spinner, spinnerEnabled, `✓ README written / 已生成: ${options.output}`);
         console.log(chalk.gray(`  Data saved / 数据已保存: ${dataPath}`));
       }
@@ -165,6 +176,7 @@ program
   .option('-c, --config <path>', 'Config path · 配置文件路径', 'config.yml')
   .option('-r, --readme <path>', 'README path · README 文件路径', 'README.md')
   .option('-j, --json', 'Output JSON only · 仅输出 JSON')
+  .option('-q, --quiet', 'Suppress spinner and success summary · 静默 spinner 与成功摘要')
   .option('--no-color', 'Disable colored output · 禁用彩色输出')
   .action(async (options) => {
     const colorDisabled = isColorDisabled(options);
@@ -173,6 +185,7 @@ program
     }
     const { spinner, spinnerEnabled } = createSpinner('Refreshing README… · 正在刷新 README...', {
       json: options.json,
+      quiet: isQuiet(options),
       colorDisabled
     });
     if (spinnerEnabled && spinner) {
@@ -241,7 +254,7 @@ program
           action: 'refreshed',
           path: options.readme
         }, null, 2));
-      } else {
+      } else if (shouldPrintHuman(options)) {
         spinnerSucceed(spinner, spinnerEnabled, `✓ README refreshed / 已刷新: ${options.readme}`);
         console.log(chalk.gray(`  Data saved / 数据已保存: ${join(dataDir, 'profile.json')}`));
       }
@@ -265,6 +278,7 @@ program
   .option('-o, --output <path>', 'Output path · 输出路径', 'config.yml')
   .option('-f, --force', 'Overwrite if exists · 强制覆盖已存在的文件')
   .option('-j, --json', 'Output JSON only · 仅输出 JSON')
+  .option('-q, --quiet', 'Suppress spinner and success summary · 静默 spinner 与成功摘要')
   .option('--no-color', 'Disable colored output · 禁用彩色输出')
   .action(async (options) => {
     if (isColorDisabled(options)) {
@@ -311,7 +325,7 @@ program
           action,
           path: outputPath
         }, null, 2));
-      } else {
+      } else if (shouldPrintHuman(options)) {
         console.log(chalk.green(`✓ Config created / 配置文件已创建: ${outputPath}`));
         console.log(chalk.gray(`  Next steps / 后续步骤:`));
         console.log(chalk.gray(`  1. Edit ${outputPath} with your GitHub username`));
@@ -337,6 +351,7 @@ program
   .description('Validate config file · 验证配置文件')
   .option('-c, --config <path>', 'Config path · 配置文件路径', 'config.yml')
   .option('-j, --json', 'Output JSON only · 仅输出 JSON')
+  .option('-q, --quiet', 'Suppress spinner and success summary · 静默 spinner 与成功摘要')
   .option('--no-color', 'Disable colored output · 禁用彩色输出')
   .action(async (options) => {
     if (isColorDisabled(options)) {
@@ -353,7 +368,7 @@ program
       
       if (options.json) {
         console.log(JSON.stringify({ ok: true, config }, null, 2));
-      } else {
+      } else if (shouldPrintHuman(options)) {
         console.log(chalk.green('✓ Config valid / 配置文件有效'));
         console.log(chalk.gray('\nConfig / 配置内容:'));
         console.log(JSON.stringify(config, null, 2));
