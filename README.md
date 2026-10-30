@@ -116,7 +116,23 @@ Optional: set `GITHUB_TOKEN` or `GH_TOKEN` (or use `secrets.GITHUB_TOKEN` in Act
 | `intro.zh` / `intro.en` | string | one of zh/en (non-empty) | zh-only, en-only, or both · 仅中文 / 仅英文 / 双语均可 |
 | `featuredRepos` | string[] | no | Pinned repo names |
 | `sections` | Section[] | no | Ordered sections |
-| `style` | StyleConfig | no | Theme / layout knobs |
+| `style` | StyleConfig | no | See style fields below · 见下方 style 说明 |
+
+
+### Style · 样式字段
+
+| Field | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `icons` | boolean | `true` | When `false`, omit emoji from headings, stats table, and repo cards · `false` 时去掉标题/统计表/仓库卡片中的 emoji |
+| `theme` | `'light' \| 'dark' \| 'auto'` | `auto` | **Reserved** — pure Markdown profiles ignore theme; kept for forward compatibility · **预留字段**，纯 Markdown 主页不生效 |
+| `badges` | boolean | `true` | **Reserved** — not applied by the generator yet · **预留字段**，生成器暂未读取 |
+
+```yaml
+style:
+  icons: true   # set false for emoji-free output
+  theme: auto   # reserved
+  badges: true  # reserved
+```
 
 ### Section types · 章节类型
 
@@ -190,7 +206,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: npm i @webywz/breathing-github-profile@1.0.5
+      - run: npm i @webywz/breathing-github-profile@1.0.6
       - name: Refresh README
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
