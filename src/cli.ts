@@ -33,32 +33,39 @@ function applyNoColor(): void {
 function createSpinner(
   text: string,
   options: { json?: boolean; colorDisabled?: boolean }
-): Ora | null {
+): { spinner: Ora | null; spinnerEnabled: boolean } {
   if (options.json) {
-    return null;
+    return { spinner: null, spinnerEnabled: false };
   }
 
-  // Disable the spinner entirely so ora does not write cursor/color ANSI to stderr
-  // (TTY + FORCE_COLOR=1 would otherwise still animate even when chalk.level is 0).
-  if (options.colorDisabled) {
-    return ora({ text, isEnabled: false });
-  }
-  return ora({ text });
+  const spinnerEnabled = !options.colorDisabled;
+  // Ora's public type has no isEnabled field — keep a local boolean and pass
+  // isEnabled only as a constructor option (TTY + FORCE_COLOR would otherwise spin).
+  const spinner = spinnerEnabled
+    ? ora({ text })
+    : ora({ text, isEnabled: false });
+  return { spinner, spinnerEnabled };
 }
 
-function spinnerSucceed(spinner: Ora | null, message: string): void {
-  // ora.succeed() always prefixes log-symbols (chalk-colored ✔) even when isEnabled is false.
-  if (!spinner || !spinner.isEnabled) {
-    spinner?.stop();
+function spinnerSucceed(
+  spinner: Ora | null,
+  spinnerEnabled: boolean,
+  message: string
+): void {
+  // ora.succeed() prefixes log-symbols (chalk-colored ✔) even when constructed with isEnabled: false.
+  if (!spinner || !spinnerEnabled) {
     console.log(message);
     return;
   }
   spinner.succeed(chalk.green(message));
 }
 
-function spinnerFail(spinner: Ora | null, message: string): void {
-  if (!spinner || !spinner.isEnabled) {
-    spinner?.stop();
+function spinnerFail(
+  spinner: Ora | null,
+  spinnerEnabled: boolean,
+  message: string
+): void {
+  if (!spinner || !spinnerEnabled) {
     console.error(message);
     return;
   }
@@ -85,11 +92,11 @@ program
     if (colorDisabled) {
       applyNoColor();
     }
-    const spinner = createSpinner('Generating README… · 正在生成 README...', {
+    const { spinner, spinnerEnabled } = createSpinner('Generating README… · 正在生成 README...', {
       json: options.json,
       colorDisabled
     });
-    if (spinner?.isEnabled) {
+    if (spinnerEnabled && spinner) {
       spinner.start();
     }
 
@@ -135,7 +142,7 @@ program
           sections
         }, null, 2));
       } else {
-        spinnerSucceed(spinner, `✓ README written / 已生成: ${options.output}`);
+        spinnerSucceed(spinner, spinnerEnabled, `✓ README written / 已生成: ${options.output}`);
         console.log(chalk.gray(`  Data saved / 数据已保存: ${dataPath}`));
       }
     } catch (error) {
@@ -145,7 +152,7 @@ program
           error: (error as Error).message
         }, null, 2));
       } else {
-        spinnerFail(spinner, 'Generate failed / 生成失败');
+        spinnerFail(spinner, spinnerEnabled, 'Generate failed / 生成失败');
         console.error(chalk.red(`Error / 错误: ${(error as Error).message}`));
       }
       process.exit(1);
@@ -164,11 +171,11 @@ program
     if (colorDisabled) {
       applyNoColor();
     }
-    const spinner = createSpinner('Refreshing README… · 正在刷新 README...', {
+    const { spinner, spinnerEnabled } = createSpinner('Refreshing README… · 正在刷新 README...', {
       json: options.json,
       colorDisabled
     });
-    if (spinner?.isEnabled) {
+    if (spinnerEnabled && spinner) {
       spinner.start();
     }
 
@@ -235,7 +242,7 @@ program
           path: options.readme
         }, null, 2));
       } else {
-        spinnerSucceed(spinner, `✓ README refreshed / 已刷新: ${options.readme}`);
+        spinnerSucceed(spinner, spinnerEnabled, `✓ README refreshed / 已刷新: ${options.readme}`);
         console.log(chalk.gray(`  Data saved / 数据已保存: ${join(dataDir, 'profile.json')}`));
       }
     } catch (error) {
@@ -245,7 +252,7 @@ program
           error: (error as Error).message
         }, null, 2));
       } else {
-        spinnerFail(spinner, 'Refresh failed / 刷新失败');
+        spinnerFail(spinner, spinnerEnabled, 'Refresh failed / 刷新失败');
         console.error(chalk.red(`Error / 错误: ${(error as Error).message}`));
       }
       process.exit(1);
