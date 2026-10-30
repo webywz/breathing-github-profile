@@ -104,8 +104,10 @@ npm run refresh -- -c examples/webywz.yml -r examples/demo.md
 A `custom` section can also embed an external SVG. Generate a tank with [contrib-aquarium](https://github.com/webywz/contrib-aquarium), pass `--width` for display size (viewBox stays proportional so fish are not squashed):
 
 ```bash
-npx contrib-aquarium@0.1.4 generate --user YOUR_LOGIN --out assets/aquarium.svg --width 640
+npx contrib-aquarium@0.1.5 generate --user YOUR_LOGIN --out assets/aquarium.svg --width 640
 ```
+
+Supports `--static` / `--no-animate` and themes `lagoon`, `ember`, `fog` (optional; animates by default). · 支持 `--static` / `--no-animate` 和主题 `lagoon`、`ember`、`fog`（可选，默认动画）。
 
 ```yaml
 - type: custom
