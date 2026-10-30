@@ -6,6 +6,7 @@ import {
   UsageError,
   cliText,
   errorText,
+  initNextStepLines,
   parseLocale
 } from '../locale';
 import { expectExit, runCli as spawnCli } from './run-cli';
@@ -42,6 +43,28 @@ describe('parseLocale / cliText', () => {
       en: 'Config valid',
       zh: '配置文件有效'
     })).toBe('Config valid / 配置文件有效');
+  });
+
+  it('initNextStepLines localizes chrome and keeps command names', () => {
+    const zh = initNextStepLines('zh', 'config.yml').join('\n');
+    const en = initNextStepLines('en', 'config.yml').join('\n');
+    const omitted = initNextStepLines(undefined, 'config.yml').join('\n');
+
+    expect(zh).toContain('后续步骤');
+    expect(zh).toContain('运行: breathing-profile validate');
+    expect(zh).toContain('运行: breathing-profile generate');
+    expect(zh).not.toContain('Run:');
+    expect(zh).not.toContain('Next steps');
+
+    expect(en).toContain('Next steps');
+    expect(en).toContain('Run: breathing-profile validate');
+    expect(en).toContain('Run: breathing-profile generate');
+    expect(en).not.toContain('运行:');
+    expect(en).not.toContain('后续步骤');
+
+    expect(omitted).toContain('Next steps / 后续步骤');
+    expect(omitted).toContain('Run: breathing-profile validate');
+    expect(omitted).toContain('Run: breathing-profile generate');
   });
 
   it('en/zh pick a single language', () => {
@@ -98,6 +121,8 @@ describe('--locale flag', () => {
       expect(result.stdout).toContain('Config created');
       expect(result.stdout).toContain('配置文件已创建');
       expect(result.stdout).toContain('Next steps / 后续步骤');
+      expect(result.stdout).toContain('Run: breathing-profile validate');
+      expect(result.stdout).toContain('Run: breathing-profile generate');
     });
 
     it('--locale en is English only', () => {
@@ -105,9 +130,12 @@ describe('--locale flag', () => {
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('Config created');
       expect(result.stdout).toContain('Next steps');
+      expect(result.stdout).toContain('Run: breathing-profile validate');
+      expect(result.stdout).toContain('Run: breathing-profile generate');
       expect(result.stdout).not.toContain('配置文件已创建');
       expect(result.stdout).not.toContain('后续步骤');
       expect(result.stdout).not.toContain('编辑');
+      expect(result.stdout).not.toContain('运行:');
     });
 
     it('--locale zh is Chinese only', () => {
@@ -115,8 +143,11 @@ describe('--locale flag', () => {
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('配置文件已创建');
       expect(result.stdout).toContain('后续步骤');
+      expect(result.stdout).toContain('运行: breathing-profile validate');
+      expect(result.stdout).toContain('运行: breathing-profile generate');
       expect(result.stdout).not.toContain('Config created');
       expect(result.stdout).not.toContain('Next steps');
+      expect(result.stdout).not.toContain('Run:');
     });
 
     it('invalid --locale is a usage error with non-zero exit', () => {
@@ -286,6 +317,10 @@ intro:
       expect(zhJson.ok).toBe(true);
       expect(omittedJson.action).toBe('created');
       expect(zhJson.action).toBe('created');
+      expect(omitted.stdout).not.toContain('Run:');
+      expect(zh.stdout).not.toContain('Run:');
+      expect(zh.stdout).not.toContain('运行:');
+      expect(zh.stdout).not.toContain('后续步骤');
     });
   });
 

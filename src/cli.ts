@@ -14,6 +14,7 @@ import {
   Locale,
   cliText,
   errorText,
+  initNextStepLines,
   parseLocale
 } from './locale';
 
@@ -466,22 +467,8 @@ program
           en: `✓ Config created: ${outputPath}`,
           zh: `✓ 配置文件已创建: ${outputPath}`
         })));
-        if (locale === 'en') {
-          console.log(chalk.gray('  Next steps:'));
-          console.log(chalk.gray(`  1. Edit ${outputPath} with your GitHub username`));
-          console.log(chalk.gray('  2. Run: breathing-profile validate'));
-          console.log(chalk.gray('  3. Run: breathing-profile generate'));
-        } else if (locale === 'zh') {
-          console.log(chalk.gray('  后续步骤:'));
-          console.log(chalk.gray(`  1. 编辑 ${outputPath}，填入你的 GitHub 用户名`));
-          console.log(chalk.gray('  2. Run: breathing-profile validate'));
-          console.log(chalk.gray('  3. Run: breathing-profile generate'));
-        } else {
-          console.log(chalk.gray('  Next steps / 后续步骤:'));
-          console.log(chalk.gray(`  1. Edit ${outputPath} with your GitHub username`));
-          console.log(chalk.gray(`     编辑 ${outputPath}，填入你的 GitHub 用户名`));
-          console.log(chalk.gray('  2. Run: breathing-profile validate'));
-          console.log(chalk.gray('  3. Run: breathing-profile generate'));
+        for (const line of initNextStepLines(locale, outputPath)) {
+          console.log(chalk.gray(line));
         }
       }
     } catch (error) {
