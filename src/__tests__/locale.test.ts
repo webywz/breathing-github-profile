@@ -1,6 +1,5 @@
 import { existsSync, writeFileSync, mkdtempSync, rmSync } from 'fs';
 import { join } from 'path';
-import { spawnSync } from 'child_process';
 import { tmpdir } from 'os';
 import {
   BilingualError,
@@ -9,23 +8,13 @@ import {
   errorText,
   parseLocale
 } from '../locale';
-
-const cliPath = join(__dirname, '../cli.ts');
+import { expectExit, runCli as spawnCli } from './run-cli';
 
 function runCli(
   args: string[],
   cwd: string
 ): { stdout: string; stderr: string; exitCode: number } {
-  const result = spawnSync('npx', ['tsx', cliPath, ...args], {
-    encoding: 'utf-8',
-    cwd,
-    env: { ...process.env, FORCE_COLOR: '0', NO_COLOR: '1' }
-  });
-  return {
-    stdout: result.stdout || '',
-    stderr: result.stderr || '',
-    exitCode: result.status ?? 1
-  };
+  return spawnCli(args, cwd, { ...process.env, FORCE_COLOR: '0', NO_COLOR: '1' });
 }
 
 describe('parseLocale / cliText', () => {
@@ -96,7 +85,7 @@ describe('--locale flag', () => {
   describe('help', () => {
     it('lists --locale en|zh', () => {
       const result = runCli(['--help'], testDir);
-      expect(result.exitCode).toBe(0);
+      expectExit(result, 0);
       expect(result.stdout).toMatch(/--locale/);
       expect(result.stdout).toMatch(/en\|zh/);
     });

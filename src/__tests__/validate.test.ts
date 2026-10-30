@@ -1,28 +1,12 @@
 import { existsSync, writeFileSync, unlinkSync } from 'fs';
 import { join } from 'path';
-import { execSync } from 'child_process';
+import { runCli, splitArgs } from './run-cli';
 
 const testConfigPath = join(__dirname, '../../test-validate-config.yml');
-const cliPath = join(__dirname, '../cli.ts');
+const repoRoot = join(__dirname, '../..');
 
 function runValidate(args: string = ''): { stdout: string; stderr: string; exitCode: number } {
-  try {
-    const stdout = execSync(
-      `npx tsx ${cliPath} validate ${args}`,
-      { 
-        encoding: 'utf-8',
-        cwd: join(__dirname, '../..'),
-        stdio: ['pipe', 'pipe', 'pipe']
-      }
-    );
-    return { stdout, stderr: '', exitCode: 0 };
-  } catch (error: any) {
-    return {
-      stdout: error.stdout || '',
-      stderr: error.stderr || '',
-      exitCode: error.status || 1
-    };
-  }
+  return runCli(['validate', ...splitArgs(args)], repoRoot);
 }
 
 describe('Validate Command', () => {

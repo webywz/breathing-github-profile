@@ -1,24 +1,13 @@
 import { existsSync, writeFileSync, mkdtempSync, rmSync, readFileSync } from 'fs';
 import { join } from 'path';
-import { spawnSync } from 'child_process';
 import { tmpdir } from 'os';
-
-const cliPath = join(__dirname, '../cli.ts');
+import { expectExit, runCli as spawnCli } from './run-cli';
 
 function runCli(
   args: string[],
   cwd: string
 ): { stdout: string; stderr: string; exitCode: number } {
-  const result = spawnSync('npx', ['tsx', cliPath, ...args], {
-    encoding: 'utf-8',
-    cwd,
-    env: { ...process.env, FORCE_COLOR: '0' }
-  });
-  return {
-    stdout: result.stdout || '',
-    stderr: result.stderr || '',
-    exitCode: result.status ?? 1
-  };
+  return spawnCli(args, cwd, { ...process.env, FORCE_COLOR: '0' });
 }
 
 const HUMAN_SUCCESS = [
@@ -64,7 +53,7 @@ describe('--quiet flag', () => {
   describe('init', () => {
     it('默认输出成功摘要', () => {
       const result = runCli(['init', '-o', testConfigPath], testDir);
-      expect(result.exitCode).toBe(0);
+      expectExit(result, 0);
       expect(result.stdout).toContain('Config created');
       expect(existsSync(testConfigPath)).toBe(true);
     });

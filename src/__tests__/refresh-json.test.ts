@@ -1,28 +1,10 @@
 import { existsSync, writeFileSync, readFileSync, rmSync, mkdtempSync } from 'fs';
 import { join } from 'path';
-import { execSync } from 'child_process';
 import { tmpdir } from 'os';
-
-const cliPath = join(__dirname, '../cli.ts');
+import { expectExit, runCli, splitArgs } from './run-cli';
 
 function runRefresh(args: string = '', testDir: string): { stdout: string; stderr: string; exitCode: number } {
-  try {
-    const stdout = execSync(
-      `npx tsx ${cliPath} refresh ${args}`,
-      { 
-        encoding: 'utf-8',
-        cwd: testDir,
-        stdio: ['pipe', 'pipe', 'pipe']
-      }
-    );
-    return { stdout, stderr: '', exitCode: 0 };
-  } catch (error: any) {
-    return {
-      stdout: error.stdout || '',
-      stderr: error.stderr || '',
-      exitCode: error.status || 1
-    };
-  }
+  return runCli(['refresh', ...splitArgs(args)], testDir);
 }
 
 describe('Refresh Command with --json', () => {
@@ -67,7 +49,7 @@ More content here.
 
       const result = runRefresh(`--json -c config.yml -r README.md`, testDir);
       
-      expect(result.exitCode).toBe(0);
+      expectExit(result, 0);
       
       const parsed = JSON.parse(result.stdout);
       expect(parsed.ok).toBe(true);
@@ -128,7 +110,7 @@ sections:
 
       const result = runRefresh(`--json -c config.yml -r README.md`, testDir);
       
-      expect(result.exitCode).toBe(0);
+      expectExit(result, 0);
       expect(result.stdout).not.toContain('✓');
       expect(result.stdout).not.toContain('Refreshing');
       expect(result.stdout).not.toContain('正在刷新');
@@ -156,7 +138,7 @@ sections:
 
       const result = runRefresh(`-j -c config.yml -r README.md`, testDir);
       
-      expect(result.exitCode).toBe(0);
+      expectExit(result, 0);
       expect(() => JSON.parse(result.stdout)).not.toThrow();
       
       const parsed = JSON.parse(result.stdout);
@@ -187,7 +169,7 @@ Old content
 
       const result = runRefresh(`-c config.yml -r README.md`, testDir);
       
-      expect(result.exitCode).toBe(0);
+      expectExit(result, 0);
       
       // 验证文件更新
       expect(existsSync(testReadmePath)).toBe(true);
