@@ -1,28 +1,14 @@
 import { existsSync, writeFileSync, readFileSync, rmSync, mkdtempSync } from 'fs';
 import { join } from 'path';
-import { execSync } from 'child_process';
 import { tmpdir } from 'os';
-
-const cliPath = join(__dirname, '../cli.ts');
+import { expectExit, runCli, splitArgs } from './run-cli';
 
 function runGenerate(args: string = '', testDir: string): { stdout: string; stderr: string; exitCode: number } {
-  try {
-    const stdout = execSync(
-      `npx tsx ${cliPath} generate ${args}`,
-      { 
-        encoding: 'utf-8',
-        cwd: testDir,
-        stdio: ['pipe', 'pipe', 'pipe']
-      }
-    );
-    return { stdout, stderr: '', exitCode: 0 };
-  } catch (error: any) {
-    return {
-      stdout: error.stdout || '',
-      stderr: error.stderr || '',
-      exitCode: error.status || 1
-    };
-  }
+  return runCli(['generate', ...splitArgs(args)], testDir);
+}
+
+function expectGenerateOk(result: { stdout: string; stderr: string; exitCode: number }): void {
+  expectExit(result, 0);
 }
 
 describe('Generate Command with --json', () => {
@@ -61,7 +47,7 @@ sections:
 
       const result = runGenerate(`--json -c config.yml -o README.md`, testDir);
       
-      expect(result.exitCode).toBe(0);
+      expectGenerateOk(result);
       
       const parsed = JSON.parse(result.stdout);
       expect(parsed.ok).toBe(true);
@@ -115,7 +101,7 @@ intro:
 
       const result = runGenerate(`--json -c config.yml -o README.md`, testDir);
       
-      expect(result.exitCode).toBe(0);
+      expectGenerateOk(result);
       expect(result.stdout).not.toContain('✓');
       expect(result.stdout).not.toContain('Generating');
       expect(result.stdout).not.toContain('正在生成');
@@ -135,7 +121,7 @@ intro:
 
       const result = runGenerate(`-j -c config.yml -o README.md`, testDir);
       
-      expect(result.exitCode).toBe(0);
+      expectGenerateOk(result);
       
       const parsed = JSON.parse(result.stdout);
       expect(parsed.ok).toBe(true);
@@ -156,7 +142,7 @@ sections:
 
       const result = runGenerate('-j -c config.yml -o README.md', testDir);
       
-      expect(result.exitCode).toBe(0);
+      expectGenerateOk(result);
       expect(() => JSON.parse(result.stdout)).not.toThrow();
       
       const parsed = JSON.parse(result.stdout);
@@ -175,7 +161,7 @@ intro:
 
       const result = runGenerate(`-c config.yml -o README.md`, testDir);
       
-      expect(result.exitCode).toBe(0);
+      expectGenerateOk(result);
       
       // 验证文件生成
       expect(existsSync(testOutputPath)).toBe(true);

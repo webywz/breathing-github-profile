@@ -118,6 +118,8 @@ npx breathing-profile validate -c config.yml --json  # machine-readable CI outpu
 npx breathing-profile generate --no-color  # disable colored output
 NO_COLOR=1 npx breathing-profile generate  # also disables colors
 npx breathing-profile generate --quiet     # no spinner / success summary
+npx breathing-profile validate --locale en # English-only human messages
+npx breathing-profile validate --locale zh # Chinese-only human messages
 ```
 
 | Command | EN | 中文 |
@@ -125,15 +127,19 @@ npx breathing-profile generate --quiet     # no spinner / success summary
 | `init` | Create a starter config.yml (use `--force` to overwrite) | 创建初始 config.yml（使用 `--force` 覆盖） |
 | `init --json` | Create config; output JSON (for CI) | 创建配置，输出 JSON（供 CI 使用） |
 | `init --quiet` | Create config; no success summary | 创建配置，不打印成功摘要 |
+| `init --locale en\|zh` | Human messages in one language (omit = bilingual) | 人类可读消息只用一种语言（省略则中英双语） |
 | `generate` | Write a full README from config + GitHub data | 按配置与 GitHub 数据生成完整 README |
 | `generate --json` | Generate and output JSON (for CI) | 生成 README 并输出 JSON（供 CI 使用） |
 | `generate --quiet` | Generate; no spinner / success summary | 生成 README，不打印 spinner 与成功摘要 |
+| `generate --locale en\|zh` | Spinner / summary / errors in one language | spinner、摘要与错误只用一种语言 |
 | `refresh` | Rewrite marker sections only | 只刷新标记区 |
 | `refresh --json` | Refresh markers; output JSON (for CI) | 刷新标记区，输出 JSON（供 CI 使用） |
 | `refresh --quiet` | Refresh; no spinner / success summary | 刷新标记区，不打印 spinner 与成功摘要 |
+| `refresh --locale en\|zh` | Spinner / summary / errors in one language | spinner、摘要与错误只用一种语言 |
 | `validate` | Check the config file | 校验配置 |
 | `validate --json` | Check the config file; output JSON (for CI) | 校验配置，输出 JSON（供 CI 使用） |
 | `validate --quiet` | Check the config; no success summary | 校验配置，不打印成功摘要 |
+| `validate --locale en\|zh` | Human messages in one language (omit = bilingual) | 人类可读消息只用一种语言（省略则中英双语） |
 
 **Color output · 彩色输出**
 
@@ -153,6 +159,17 @@ By default, the CLI uses colored output (via ANSI escape codes). To disable:
 npx breathing-profile generate --quiet -c config.yml -o README.md
 npx breathing-profile --quiet validate -c config.yml
 npx breathing-profile generate --quiet --json -c config.yml -o README.md  # JSON unchanged
+```
+
+**Locale · 语言**
+
+`--locale en` or `--locale zh` prints spinner text, success summaries, and human error messages in that language only. Omit `--locale` to keep the current bilingual EN / ZH (or EN · ZH) wording. Invalid values (`fr`, `ja`, …) are a usage error and exit non-zero. `--json` keys and shape are unchanged regardless of locale (global or per-command, same pattern as `--quiet` / `--json`).  
+`--locale en` 或 `--locale zh` 只以该语言显示 spinner、成功摘要和人类可读错误。省略 `--locale` 则保持现有中英双语。非法取值会以用法错误非零退出。无论 locale 如何，`--json` 的字段名与结构不变（全局或命令级，写法与 `--quiet` / `--json` 相同）。
+
+```bash
+npx breathing-profile generate --locale en -c config.yml -o README.md
+npx breathing-profile --locale zh validate -c config.yml
+npx breathing-profile generate --locale zh --json -c config.yml -o README.md  # JSON unchanged
 ```
 
 #### Init with `--json` · 使用 `--json` 初始化

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { Command } from 'commander';
+import { Command, InvalidArgumentError, Option } from 'commander';
 import chalk from 'chalk';
 import ora, { Ora } from 'ora';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
@@ -9,6 +9,13 @@ import { loadConfig } from './config';
 import { GitHubClient } from './github';
 import { ReadmeGenerator, updateReadmeMarkers } from './generator';
 import { readPackageVersion } from './version';
+import {
+  BilingualError,
+  Locale,
+  cliText,
+  errorText,
+  parseLocale
+} from './locale';
 
 function shouldDisableColor(options: { color?: boolean }): boolean {
   // Commander maps --no-color to { color: false } on the command (and program).
@@ -38,9 +45,9 @@ function createSpinner(
     return { spinner: null, spinnerEnabled: false };
   }
 
-  const spinnerEnabled = !options.colorDisabled;
-  // Ora's public type has no isEnabled field — keep a local boolean and pass
-  // isEnabled only as a constructor option (TTY + FORCE_COLOR would otherwise spin).
+  // Non-TTY / CI pipes: skip ora so succeed/fail use console.log/error (stdout
+  // for success). Ora + FORCE_COLOR would otherwise write the summary to stderr.
+  const spinnerEnabled = !options.colorDisabled && Boolean(process.stderr.isTTY);
   const spinner = spinnerEnabled
     ? ora({ text })
     : ora({ text, isEnabled: false });
@@ -82,12 +89,39 @@ function shouldPrintHuman(options: { json?: boolean; quiet?: boolean }): boolean
   return !options.json && !isQuiet(options);
 }
 
+function localeOption(): Option {
+  return new Option(
+    '--locale <en|zh>',
+    'CLI language en|zh; omit for bilingual · CLI 语言 en|zh；省略则中英双语'
+  ).argParser((value: string) => {
+    try {
+      return parseLocale(value);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new InvalidArgumentError(message);
+    }
+  });
+}
+
+function getLocale(options: { locale?: Locale }): Locale | undefined {
+  return options.locale ?? program.opts().locale;
+}
+
+function configNotFoundError(path: string): BilingualError {
+  return new BilingualError(
+    `Config not found / 配置文件不存在: ${path}`,
+    `Config not found: ${path}`,
+    `配置文件不存在: ${path}`
+  );
+}
+
 program
   .name('breathing-profile')
   .description('Living GitHub profile README generator · 会呼吸的 GitHub profile README 生成器')
   .version(readPackageVersion())
   .option('-q, --quiet', 'Suppress spinner and success summary · 静默 spinner 与成功摘要')
-  .option('--no-color', 'Disable colored output · 禁用彩色输出');
+  .option('--no-color', 'Disable colored output · 禁用彩色输出')
+  .addOption(localeOption());
 
 program
   .command('generate')
@@ -97,34 +131,53 @@ program
   .option('-j, --json', 'Output JSON only · 仅输出 JSON')
   .option('-q, --quiet', 'Suppress spinner and success summary · 静默 spinner 与成功摘要')
   .option('--no-color', 'Disable colored output · 禁用彩色输出')
+  .addOption(localeOption())
   .action(async (options) => {
+    const locale = getLocale(options);
     const colorDisabled = isColorDisabled(options);
     if (colorDisabled) {
       applyNoColor();
     }
-    const { spinner, spinnerEnabled } = createSpinner('Generating README… · 正在生成 README...', {
-      json: options.json,
-      quiet: isQuiet(options),
-      colorDisabled
-    });
+    const { spinner, spinnerEnabled } = createSpinner(
+      cliText(locale, {
+        both: 'Generating README… · 正在生成 README...',
+        en: 'Generating README…',
+        zh: '正在生成 README...'
+      }),
+      {
+        json: options.json,
+        quiet: isQuiet(options),
+        colorDisabled
+      }
+    );
     if (spinnerEnabled && spinner) {
       spinner.start();
     }
 
     try {
       if (!existsSync(options.config)) {
-        throw new Error(
-          `Config not found / 配置文件不存在: ${options.config}`
-        );
+        throw configNotFoundError(options.config);
       }
 
       const config = loadConfig(options.config);
       const client = new GitHubClient();
 
-      if (spinner) spinner.text = `Fetching GitHub data for ${config.username}… · 正在获取数据...`;
+      if (spinner) {
+        spinner.text = cliText(locale, {
+          both: `Fetching GitHub data for ${config.username}… · 正在获取数据...`,
+          en: `Fetching GitHub data for ${config.username}…`,
+          zh: '正在获取数据...'
+        });
+      }
       const data = await client.getProfileData(config.username);
 
-      if (spinner) spinner.text = 'Writing README… · 正在生成 README 内容...';
+      if (spinner) {
+        spinner.text = cliText(locale, {
+          both: 'Writing README… · 正在生成 README 内容...',
+          en: 'Writing README…',
+          zh: '正在生成 README 内容...'
+        });
+      }
       const generator = new ReadmeGenerator(config, data);
       const readme = generator.generate();
 
@@ -153,8 +206,20 @@ program
           sections
         }, null, 2));
       } else if (shouldPrintHuman(options)) {
-        spinnerSucceed(spinner, spinnerEnabled, `✓ README written / 已生成: ${options.output}`);
-        console.log(chalk.gray(`  Data saved / 数据已保存: ${dataPath}`));
+        spinnerSucceed(
+          spinner,
+          spinnerEnabled,
+          cliText(locale, {
+            both: `✓ README written / 已生成: ${options.output}`,
+            en: `✓ README written: ${options.output}`,
+            zh: `✓ 已生成: ${options.output}`
+          })
+        );
+        console.log(chalk.gray(cliText(locale, {
+          both: `  Data saved / 数据已保存: ${dataPath}`,
+          en: `  Data saved: ${dataPath}`,
+          zh: `  数据已保存: ${dataPath}`
+        })));
       }
     } catch (error) {
       if (options.json) {
@@ -163,8 +228,20 @@ program
           error: (error as Error).message
         }, null, 2));
       } else {
-        spinnerFail(spinner, spinnerEnabled, 'Generate failed / 生成失败');
-        console.error(chalk.red(`Error / 错误: ${(error as Error).message}`));
+        spinnerFail(
+          spinner,
+          spinnerEnabled,
+          cliText(locale, {
+            both: 'Generate failed / 生成失败',
+            en: 'Generate failed',
+            zh: '生成失败'
+          })
+        );
+        console.error(chalk.red(cliText(locale, {
+          both: `Error / 错误: ${errorText(error)}`,
+          en: `Error: ${errorText(error, 'en')}`,
+          zh: `错误: ${errorText(error, 'zh')}`
+        })));
       }
       process.exit(1);
     }
@@ -178,40 +255,61 @@ program
   .option('-j, --json', 'Output JSON only · 仅输出 JSON')
   .option('-q, --quiet', 'Suppress spinner and success summary · 静默 spinner 与成功摘要')
   .option('--no-color', 'Disable colored output · 禁用彩色输出')
+  .addOption(localeOption())
   .action(async (options) => {
+    const locale = getLocale(options);
     const colorDisabled = isColorDisabled(options);
     if (colorDisabled) {
       applyNoColor();
     }
-    const { spinner, spinnerEnabled } = createSpinner('Refreshing README… · 正在刷新 README...', {
-      json: options.json,
-      quiet: isQuiet(options),
-      colorDisabled
-    });
+    const { spinner, spinnerEnabled } = createSpinner(
+      cliText(locale, {
+        both: 'Refreshing README… · 正在刷新 README...',
+        en: 'Refreshing README…',
+        zh: '正在刷新 README...'
+      }),
+      {
+        json: options.json,
+        quiet: isQuiet(options),
+        colorDisabled
+      }
+    );
     if (spinnerEnabled && spinner) {
       spinner.start();
     }
 
     try {
       if (!existsSync(options.config)) {
-        throw new Error(
-          `Config not found / 配置文件不存在: ${options.config}`
-        );
+        throw configNotFoundError(options.config);
       }
 
       if (!existsSync(options.readme)) {
-        throw new Error(
-          `README not found / README 文件不存在: ${options.readme}`
+        throw new BilingualError(
+          `README not found / README 文件不存在: ${options.readme}`,
+          `README not found: ${options.readme}`,
+          `README 文件不存在: ${options.readme}`
         );
       }
 
       const config = loadConfig(options.config);
       const client = new GitHubClient();
 
-      if (spinner) spinner.text = `Fetching GitHub data for ${config.username}… · 正在获取数据...`;
+      if (spinner) {
+        spinner.text = cliText(locale, {
+          both: `Fetching GitHub data for ${config.username}… · 正在获取数据...`,
+          en: `Fetching GitHub data for ${config.username}…`,
+          zh: '正在获取数据...'
+        });
+      }
       const data = await client.getProfileData(config.username);
 
-      if (spinner) spinner.text = 'Updating markers… · 正在更新 README 标记部分...';
+      if (spinner) {
+        spinner.text = cliText(locale, {
+          both: 'Updating markers… · 正在更新 README 标记部分...',
+          en: 'Updating markers…',
+          zh: '正在更新 README 标记部分...'
+        });
+      }
       const existingReadme = readFileSync(options.readme, 'utf-8');
       
       const markerSections = (config.sections || []).map(section => {
@@ -255,8 +353,20 @@ program
           path: options.readme
         }, null, 2));
       } else if (shouldPrintHuman(options)) {
-        spinnerSucceed(spinner, spinnerEnabled, `✓ README refreshed / 已刷新: ${options.readme}`);
-        console.log(chalk.gray(`  Data saved / 数据已保存: ${join(dataDir, 'profile.json')}`));
+        spinnerSucceed(
+          spinner,
+          spinnerEnabled,
+          cliText(locale, {
+            both: `✓ README refreshed / 已刷新: ${options.readme}`,
+            en: `✓ README refreshed: ${options.readme}`,
+            zh: `✓ 已刷新: ${options.readme}`
+          })
+        );
+        console.log(chalk.gray(cliText(locale, {
+          both: `  Data saved / 数据已保存: ${join(dataDir, 'profile.json')}`,
+          en: `  Data saved: ${join(dataDir, 'profile.json')}`,
+          zh: `  数据已保存: ${join(dataDir, 'profile.json')}`
+        })));
       }
     } catch (error) {
       if (options.json) {
@@ -265,8 +375,20 @@ program
           error: (error as Error).message
         }, null, 2));
       } else {
-        spinnerFail(spinner, spinnerEnabled, 'Refresh failed / 刷新失败');
-        console.error(chalk.red(`Error / 错误: ${(error as Error).message}`));
+        spinnerFail(
+          spinner,
+          spinnerEnabled,
+          cliText(locale, {
+            both: 'Refresh failed / 刷新失败',
+            en: 'Refresh failed',
+            zh: '刷新失败'
+          })
+        );
+        console.error(chalk.red(cliText(locale, {
+          both: `Error / 错误: ${errorText(error)}`,
+          en: `Error: ${errorText(error, 'en')}`,
+          zh: `错误: ${errorText(error, 'zh')}`
+        })));
       }
       process.exit(1);
     }
@@ -280,7 +402,9 @@ program
   .option('-j, --json', 'Output JSON only · 仅输出 JSON')
   .option('-q, --quiet', 'Suppress spinner and success summary · 静默 spinner 与成功摘要')
   .option('--no-color', 'Disable colored output · 禁用彩色输出')
+  .addOption(localeOption())
   .action(async (options) => {
+    const locale = getLocale(options);
     if (isColorDisabled(options)) {
       applyNoColor();
     }
@@ -298,8 +422,17 @@ program
           } else {
             console.error(
               chalk.red(
-                `✗ Config already exists / 配置文件已存在: ${outputPath}\n` +
-                `  Use --force to overwrite / 使用 --force 覆盖`
+                cliText(locale, {
+                  both:
+                    `✗ Config already exists / 配置文件已存在: ${outputPath}\n` +
+                    `  Use --force to overwrite / 使用 --force 覆盖`,
+                  en:
+                    `✗ Config already exists: ${outputPath}\n` +
+                    `  Use --force to overwrite`,
+                  zh:
+                    `✗ 配置文件已存在: ${outputPath}\n` +
+                    `  使用 --force 覆盖`
+                })
               )
             );
           }
@@ -311,8 +444,10 @@ program
       const templatePath = join(__dirname, '..', 'examples', 'demo-config.yml');
       
       if (!existsSync(templatePath)) {
-        throw new Error(
-          `Template not found / 模板文件不存在: ${templatePath}`
+        throw new BilingualError(
+          `Template not found / 模板文件不存在: ${templatePath}`,
+          `Template not found: ${templatePath}`,
+          `模板文件不存在: ${templatePath}`
         );
       }
 
@@ -326,12 +461,28 @@ program
           path: outputPath
         }, null, 2));
       } else if (shouldPrintHuman(options)) {
-        console.log(chalk.green(`✓ Config created / 配置文件已创建: ${outputPath}`));
-        console.log(chalk.gray(`  Next steps / 后续步骤:`));
-        console.log(chalk.gray(`  1. Edit ${outputPath} with your GitHub username`));
-        console.log(chalk.gray(`     编辑 ${outputPath}，填入你的 GitHub 用户名`));
-        console.log(chalk.gray(`  2. Run: breathing-profile validate`));
-        console.log(chalk.gray(`  3. Run: breathing-profile generate`));
+        console.log(chalk.green(cliText(locale, {
+          both: `✓ Config created / 配置文件已创建: ${outputPath}`,
+          en: `✓ Config created: ${outputPath}`,
+          zh: `✓ 配置文件已创建: ${outputPath}`
+        })));
+        if (locale === 'en') {
+          console.log(chalk.gray('  Next steps:'));
+          console.log(chalk.gray(`  1. Edit ${outputPath} with your GitHub username`));
+          console.log(chalk.gray('  2. Run: breathing-profile validate'));
+          console.log(chalk.gray('  3. Run: breathing-profile generate'));
+        } else if (locale === 'zh') {
+          console.log(chalk.gray('  后续步骤:'));
+          console.log(chalk.gray(`  1. 编辑 ${outputPath}，填入你的 GitHub 用户名`));
+          console.log(chalk.gray('  2. Run: breathing-profile validate'));
+          console.log(chalk.gray('  3. Run: breathing-profile generate'));
+        } else {
+          console.log(chalk.gray('  Next steps / 后续步骤:'));
+          console.log(chalk.gray(`  1. Edit ${outputPath} with your GitHub username`));
+          console.log(chalk.gray(`     编辑 ${outputPath}，填入你的 GitHub 用户名`));
+          console.log(chalk.gray('  2. Run: breathing-profile validate'));
+          console.log(chalk.gray('  3. Run: breathing-profile generate'));
+        }
       }
     } catch (error) {
       if (options.json) {
@@ -340,7 +491,11 @@ program
           error: (error as Error).message
         }, null, 2));
       } else {
-        console.error(chalk.red(`✗ Init failed / 初始化失败: ${(error as Error).message}`));
+        console.error(chalk.red(cliText(locale, {
+          both: `✗ Init failed / 初始化失败: ${errorText(error)}`,
+          en: `✗ Init failed: ${errorText(error, 'en')}`,
+          zh: `✗ 初始化失败: ${errorText(error, 'zh')}`
+        })));
       }
       process.exit(1);
     }
@@ -353,15 +508,15 @@ program
   .option('-j, --json', 'Output JSON only · 仅输出 JSON')
   .option('-q, --quiet', 'Suppress spinner and success summary · 静默 spinner 与成功摘要')
   .option('--no-color', 'Disable colored output · 禁用彩色输出')
+  .addOption(localeOption())
   .action(async (options) => {
+    const locale = getLocale(options);
     if (isColorDisabled(options)) {
       applyNoColor();
     }
     try {
       if (!existsSync(options.config)) {
-        throw new Error(
-          `Config not found / 配置文件不存在: ${options.config}`
-        );
+        throw configNotFoundError(options.config);
       }
 
       const config = loadConfig(options.config);
@@ -369,15 +524,27 @@ program
       if (options.json) {
         console.log(JSON.stringify({ ok: true, config }, null, 2));
       } else if (shouldPrintHuman(options)) {
-        console.log(chalk.green('✓ Config valid / 配置文件有效'));
-        console.log(chalk.gray('\nConfig / 配置内容:'));
+        console.log(chalk.green(cliText(locale, {
+          both: '✓ Config valid / 配置文件有效',
+          en: '✓ Config valid',
+          zh: '✓ 配置文件有效'
+        })));
+        console.log(chalk.gray(cliText(locale, {
+          both: '\nConfig / 配置内容:',
+          en: '\nConfig:',
+          zh: '\n配置内容:'
+        })));
         console.log(JSON.stringify(config, null, 2));
       }
     } catch (error) {
       if (options.json) {
         console.log(JSON.stringify({ ok: false, error: (error as Error).message }, null, 2));
       } else {
-        console.error(chalk.red(`✗ Invalid config / 配置无效: ${(error as Error).message}`));
+        console.error(chalk.red(cliText(locale, {
+          both: `✗ Invalid config / 配置无效: ${errorText(error)}`,
+          en: `✗ Invalid config: ${errorText(error, 'en')}`,
+          zh: `✗ 配置无效: ${errorText(error, 'zh')}`
+        })));
       }
       process.exit(1);
     }

@@ -1,28 +1,13 @@
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { execSync } from 'child_process';
+import { expectExit, runCli, splitArgs } from './run-cli';
 
 const testOutputPath = join(__dirname, '../../test-config.yml');
-const cliPath = join(__dirname, '../cli.ts');
+const repoRoot = join(__dirname, '../..');
 
 function runInit(args: string = ''): { stdout: string; stderr: string; exitCode: number } {
-  try {
-    const stdout = execSync(
-      `npx tsx ${cliPath} init ${args}`,
-      { 
-        encoding: 'utf-8',
-        cwd: join(__dirname, '../..'),
-        stdio: ['pipe', 'pipe', 'pipe']
-      }
-    );
-    return { stdout, stderr: '', exitCode: 0 };
-  } catch (error: any) {
-    return {
-      stdout: error.stdout || '',
-      stderr: error.stderr || '',
-      exitCode: error.status || 1
-    };
-  }
+  return runCli(['init', ...splitArgs(args)], repoRoot);
 }
 
 describe('Init Command', () => {
@@ -56,15 +41,9 @@ describe('Init Command', () => {
     const content = readFileSync(testOutputPath, 'utf-8');
     expect(content).toContain('username: octocat');
     
-    const validateResult = execSync(
-      `npx tsx ${cliPath} validate -c ${testOutputPath}`,
-      { 
-        encoding: 'utf-8',
-        cwd: join(__dirname, '../..')
-      }
-    );
-    
-    expect(validateResult).toContain('Config valid');
+    const validateResult = runCli(['validate', '-c', testOutputPath], repoRoot);
+    expectExit(validateResult, 0);
+    expect(validateResult.stdout).toContain('Config valid');
   });
 
   it('文件已存在时应该拒绝覆盖', () => {

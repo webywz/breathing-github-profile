@@ -1,9 +1,7 @@
 import { existsSync, writeFileSync, mkdtempSync, rmSync } from 'fs';
 import { join } from 'path';
-import { spawnSync } from 'child_process';
 import { tmpdir } from 'os';
-
-const cliPath = join(__dirname, '../cli.ts');
+import { runCli } from './run-cli';
 
 function runCommand(
   command: string,
@@ -17,18 +15,11 @@ function runCommand(
     delete testEnv.NO_COLOR;
   }
 
-  const argv = [cliPath, command, ...args.trim().split(/\s+/).filter(Boolean)];
-  const result = spawnSync('npx', ['tsx', ...argv], {
-    encoding: 'utf-8',
-    cwd: join(__dirname, '../..'),
-    env: testEnv
-  });
-
-  return {
-    stdout: result.stdout || '',
-    stderr: result.stderr || '',
-    exitCode: result.status ?? 1
-  };
+  return runCli(
+    [command, ...args.trim().split(/\s+/).filter(Boolean)],
+    join(__dirname, '../..'),
+    testEnv
+  );
 }
 
 function hasAnsiCodes(text: string): boolean {
