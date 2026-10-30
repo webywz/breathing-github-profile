@@ -97,6 +97,28 @@ npm run refresh -- -c examples/webywz.yml -r examples/demo.md
     ![React](https://img.shields.io/badge/-React-61DAFB)
 ```
 
+#### custom · contrib-aquarium embed
+
+`custom` 也可嵌入外部 SVG。用 [contrib-aquarium](https://github.com/webywz/contrib-aquarium) 生成鱼缸，再用 `--width` 写入展示宽（viewBox 固定等比，鱼不会被压扁）：
+
+A `custom` section can also embed an external SVG. Generate a tank with [contrib-aquarium](https://github.com/webywz/contrib-aquarium), pass `--width` for display size (viewBox stays proportional so fish are not squashed):
+
+```bash
+npx contrib-aquarium@0.1.2 generate --user YOUR_LOGIN --out assets/aquarium.svg --width 640
+```
+
+```yaml
+- type: custom
+  marker: AQUARIUM
+  title: 🐠 Contribution aquarium
+  content: |
+    <p align="center">
+      <img src="assets/aquarium.svg" width="640" alt="contribution aquarium" />
+    </p>
+```
+
+把生成步骤放进 daily-refresh（Action 输入 `width: "640"`），与 README `<img width>` 对齐即可。 · Put the generate step in daily-refresh (`width: "640"`) so it matches the README `<img width>`.
+
 ## 💡 提示
 
 1. **标记名称**: 确保每个章节的 `marker` 唯一
