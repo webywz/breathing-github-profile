@@ -1,19 +1,17 @@
-import { existsSync, writeFileSync, unlinkSync, readFileSync, rmSync } from 'fs';
+import { existsSync, writeFileSync, unlinkSync, readFileSync, rmSync, mkdtempSync } from 'fs';
 import { join } from 'path';
 import { execSync } from 'child_process';
+import { tmpdir } from 'os';
 
-const testConfigPath = join(__dirname, '../../test-refresh-config.yml');
-const testReadmePath = join(__dirname, '../../test-refresh-readme.md');
-const testDataDir = join(__dirname, '../../data');
 const cliPath = join(__dirname, '../cli.ts');
 
-function runRefresh(args: string = ''): { stdout: string; stderr: string; exitCode: number } {
+function runRefresh(args: string = '', testDir: string): { stdout: string; stderr: string; exitCode: number } {
   try {
     const stdout = execSync(
       `npx tsx ${cliPath} refresh ${args}`,
       { 
         encoding: 'utf-8',
-        cwd: join(__dirname, '../..'),
+        cwd: testDir,
         stdio: ['pipe', 'pipe', 'pipe']
       }
     );
@@ -28,15 +26,21 @@ function runRefresh(args: string = ''): { stdout: string; stderr: string; exitCo
 }
 
 describe('Refresh Command with --json', () => {
+  let testDir: string;
+  let testConfigPath: string;
+  let testReadmePath: string;
+  let testDataDir: string;
+
+  beforeEach(() => {
+    testDir = mkdtempSync(join(tmpdir(), 'breathing-refresh-test-'));
+    testConfigPath = join(testDir, 'config.yml');
+    testReadmePath = join(testDir, 'README.md');
+    testDataDir = join(testDir, 'data');
+  });
+
   afterEach(() => {
-    if (existsSync(testConfigPath)) {
-      unlinkSync(testConfigPath);
-    }
-    if (existsSync(testReadmePath)) {
-      unlinkSync(testReadmePath);
-    }
-    if (existsSync(testDataDir)) {
-      rmSync(testDataDir, { recursive: true, force: true });
+    if (existsSync(testDir)) {
+      rmSync(testDir, { recursive: true, force: true });
     }
   });
 
@@ -63,14 +67,14 @@ More content here.
 `;
       writeFileSync(testReadmePath, existingReadme, 'utf-8');
 
-      const result = runRefresh(`--json -c ${testConfigPath} -r ${testReadmePath}`);
+      const result = runRefresh(`--json -c config.yml -r README.md`, testDir);
       
       expect(result.exitCode).toBe(0);
       
       const parsed = JSON.parse(result.stdout);
       expect(parsed.ok).toBe(true);
       expect(parsed.action).toBe('refreshed');
-      expect(parsed.path).toBe(testReadmePath);
+      expect(parsed.path).toBe('README.md');
 
       // 验证文件确实更新了
       expect(existsSync(testReadmePath)).toBe(true);
@@ -80,7 +84,7 @@ More content here.
     });
 
     it('配置文件不存在时应该输出 JSON，ok: false，并退出码为 1', () => {
-      const result = runRefresh('--json -c /nonexistent/config.yml');
+      const result = runRefresh('--json -c /nonexistent/config.yml', testDir);
       
       expect(result.exitCode).toBe(1);
       
@@ -97,7 +101,7 @@ intro:
 `;
       writeFileSync(testConfigPath, validConfig, 'utf-8');
 
-      const result = runRefresh(`--json -c ${testConfigPath} -r /nonexistent/README.md`);
+      const result = runRefresh(`--json -c config.yml -r /nonexistent/README.md`, testDir);
       
       expect(result.exitCode).toBe(1);
       
@@ -124,7 +128,7 @@ sections:
 `;
       writeFileSync(testReadmePath, existingReadme, 'utf-8');
 
-      const result = runRefresh(`--json -c ${testConfigPath} -r ${testReadmePath}`);
+      const result = runRefresh(`--json -c config.yml -r README.md`, testDir);
       
       expect(result.exitCode).toBe(0);
       expect(result.stdout).not.toContain('✓');
@@ -152,7 +156,7 @@ sections:
       const existingReadme = `<!--REPOS:START--><!--REPOS:END-->`;
       writeFileSync(testReadmePath, existingReadme, 'utf-8');
 
-      const result = runRefresh(`-j -c ${testConfigPath} -r ${testReadmePath}`);
+      const result = runRefresh(`-j -c config.yml -r README.md`, testDir);
       
       expect(result.exitCode).toBe(0);
       expect(() => JSON.parse(result.stdout)).not.toThrow();
@@ -160,7 +164,7 @@ sections:
       const parsed = JSON.parse(result.stdout);
       expect(parsed.ok).toBe(true);
       expect(parsed.action).toBe('refreshed');
-      expect(parsed.path).toBe(testReadmePath);
+      expect(parsed.path).toBe('README.md');
     });
   });
 
@@ -183,7 +187,7 @@ Old content
 `;
       writeFileSync(testReadmePath, existingReadme, 'utf-8');
 
-      const result = runRefresh(`-c ${testConfigPath} -r ${testReadmePath}`);
+      const result = runRefresh(`-c config.yml -r README.md`, testDir);
       
       expect(result.exitCode).toBe(0);
       

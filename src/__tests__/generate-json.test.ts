@@ -1,19 +1,17 @@
-import { existsSync, writeFileSync, unlinkSync, readFileSync, rmSync } from 'fs';
+import { existsSync, writeFileSync, unlinkSync, readFileSync, rmSync, mkdtempSync } from 'fs';
 import { join } from 'path';
 import { execSync } from 'child_process';
+import { tmpdir } from 'os';
 
-const testConfigPath = join(__dirname, '../../test-generate-config.yml');
-const testOutputPath = join(__dirname, '../../test-generate-output.md');
-const testDataDir = join(__dirname, '../../data');
 const cliPath = join(__dirname, '../cli.ts');
 
-function runGenerate(args: string = ''): { stdout: string; stderr: string; exitCode: number } {
+function runGenerate(args: string = '', testDir: string): { stdout: string; stderr: string; exitCode: number } {
   try {
     const stdout = execSync(
       `npx tsx ${cliPath} generate ${args}`,
       { 
         encoding: 'utf-8',
-        cwd: join(__dirname, '../..'),
+        cwd: testDir,
         stdio: ['pipe', 'pipe', 'pipe']
       }
     );
@@ -28,15 +26,21 @@ function runGenerate(args: string = ''): { stdout: string; stderr: string; exitC
 }
 
 describe('Generate Command with --json', () => {
+  let testDir: string;
+  let testConfigPath: string;
+  let testOutputPath: string;
+  let testDataDir: string;
+
+  beforeEach(() => {
+    testDir = mkdtempSync(join(tmpdir(), 'breathing-generate-test-'));
+    testConfigPath = join(testDir, 'config.yml');
+    testOutputPath = join(testDir, 'README.md');
+    testDataDir = join(testDir, 'data');
+  });
+
   afterEach(() => {
-    if (existsSync(testConfigPath)) {
-      unlinkSync(testConfigPath);
-    }
-    if (existsSync(testOutputPath)) {
-      unlinkSync(testOutputPath);
-    }
-    if (existsSync(testDataDir)) {
-      rmSync(testDataDir, { recursive: true, force: true });
+    if (existsSync(testDir)) {
+      rmSync(testDir, { recursive: true, force: true });
     }
   });
 
@@ -55,14 +59,14 @@ sections:
 `;
       writeFileSync(testConfigPath, validConfig, 'utf-8');
 
-      const result = runGenerate(`--json -c ${testConfigPath} -o ${testOutputPath}`);
+      const result = runGenerate(`--json -c config.yml -o README.md`, testDir);
       
       expect(result.exitCode).toBe(0);
       
       const parsed = JSON.parse(result.stdout);
       expect(parsed.ok).toBe(true);
-      expect(parsed.output).toBe(testOutputPath);
-      expect(parsed.config).toBe(testConfigPath);
+      expect(parsed.output).toBe('README.md');
+      expect(parsed.config).toBe('config.yml');
       expect(parsed.username).toBe('octocat');
       expect(typeof parsed.bytes).toBe('number');
       expect(parsed.bytes).toBeGreaterThan(0);
@@ -80,7 +84,7 @@ intro: {}
 `;
       writeFileSync(testConfigPath, invalidConfig, 'utf-8');
 
-      const result = runGenerate(`--json -c ${testConfigPath} -o ${testOutputPath}`);
+      const result = runGenerate(`--json -c config.yml -o README.md`, testDir);
       
       expect(result.exitCode).toBe(1);
       
@@ -92,7 +96,7 @@ intro: {}
     });
 
     it('配置文件不存在时应该输出 JSON，ok: false', () => {
-      const result = runGenerate('--json -c /nonexistent/config.yml');
+      const result = runGenerate('--json -c /nonexistent/config.yml', testDir);
       
       expect(result.exitCode).toBe(1);
       
@@ -109,7 +113,7 @@ intro:
 `;
       writeFileSync(testConfigPath, validConfig, 'utf-8');
 
-      const result = runGenerate(`--json -c ${testConfigPath} -o ${testOutputPath}`);
+      const result = runGenerate(`--json -c config.yml -o README.md`, testDir);
       
       expect(result.exitCode).toBe(0);
       expect(result.stdout).not.toContain('✓');
@@ -129,7 +133,7 @@ intro:
 `;
       writeFileSync(testConfigPath, configNoSections, 'utf-8');
 
-      const result = runGenerate(`-j -c ${testConfigPath} -o ${testOutputPath}`);
+      const result = runGenerate(`-j -c config.yml -o README.md`, testDir);
       
       expect(result.exitCode).toBe(0);
       
@@ -150,7 +154,7 @@ sections:
 `;
       writeFileSync(testConfigPath, validConfig, 'utf-8');
 
-      const result = runGenerate('-j -c ' + testConfigPath + ' -o ' + testOutputPath);
+      const result = runGenerate('-j -c config.yml -o README.md', testDir);
       
       expect(result.exitCode).toBe(0);
       expect(() => JSON.parse(result.stdout)).not.toThrow();
@@ -169,7 +173,7 @@ intro:
 `;
       writeFileSync(testConfigPath, validConfig, 'utf-8');
 
-      const result = runGenerate(`-c ${testConfigPath} -o ${testOutputPath}`);
+      const result = runGenerate(`-c config.yml -o README.md`, testDir);
       
       expect(result.exitCode).toBe(0);
       
