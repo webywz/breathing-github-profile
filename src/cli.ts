@@ -22,8 +22,9 @@ program
   .description('Generate a full README · 生成完整 README.md')
   .option('-c, --config <path>', 'Config path · 配置文件路径', 'config.yml')
   .option('-o, --output <path>', 'Output path · 输出文件路径', 'README.md')
+  .option('-j, --json', 'Output JSON only · 仅输出 JSON')
   .action(async (options) => {
-    const spinner = ora('Generating README… · 正在生成 README...').start();
+    const spinner = options.json ? null : ora('Generating README… · 正在生成 README...').start();
 
     try {
       if (!existsSync(options.config)) {
@@ -35,10 +36,10 @@ program
       const config = loadConfig(options.config);
       const client = new GitHubClient();
 
-      spinner.text = `Fetching GitHub data for ${config.username}… · 正在获取数据...`;
+      if (spinner) spinner.text = `Fetching GitHub data for ${config.username}… · 正在获取数据...`;
       const data = await client.getProfileData(config.username);
 
-      spinner.text = 'Writing README… · 正在生成 README 内容...';
+      if (spinner) spinner.text = 'Writing README… · 正在生成 README 内容...';
       const generator = new ReadmeGenerator(config, data);
       const readme = generator.generate();
 
@@ -48,17 +49,38 @@ program
       if (!existsSync(dataDir)) {
         mkdirSync(dataDir, { recursive: true });
       }
+      const dataPath = join(dataDir, 'profile.json');
       writeFileSync(
-        join(dataDir, 'profile.json'),
+        dataPath,
         JSON.stringify(data, null, 2),
         'utf-8'
       );
 
-      spinner.succeed(chalk.green(`✓ README written / 已生成: ${options.output}`));
-      console.log(chalk.gray(`  Data saved / 数据已保存: ${join(dataDir, 'profile.json')}`));
+      if (options.json) {
+        const bytes = Buffer.byteLength(readme, 'utf-8');
+        const sections = config.sections?.length || 0;
+        console.log(JSON.stringify({
+          ok: true,
+          output: options.output,
+          config: options.config,
+          username: config.username,
+          bytes,
+          sections
+        }, null, 2));
+      } else {
+        spinner!.succeed(chalk.green(`✓ README written / 已生成: ${options.output}`));
+        console.log(chalk.gray(`  Data saved / 数据已保存: ${dataPath}`));
+      }
     } catch (error) {
-      spinner.fail(chalk.red('Generate failed / 生成失败'));
-      console.error(chalk.red(`Error / 错误: ${(error as Error).message}`));
+      if (options.json) {
+        console.log(JSON.stringify({
+          ok: false,
+          error: (error as Error).message
+        }, null, 2));
+      } else {
+        spinner!.fail(chalk.red('Generate failed / 生成失败'));
+        console.error(chalk.red(`Error / 错误: ${(error as Error).message}`));
+      }
       process.exit(1);
     }
   });
