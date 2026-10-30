@@ -182,6 +182,7 @@ program
   .command('validate')
   .description('Validate config file · 验证配置文件')
   .option('-c, --config <path>', 'Config path · 配置文件路径', 'config.yml')
+  .option('-j, --json', 'Output JSON only · 仅输出 JSON')
   .action(async (options) => {
     try {
       if (!existsSync(options.config)) {
@@ -191,11 +192,20 @@ program
       }
 
       const config = loadConfig(options.config);
-      console.log(chalk.green('✓ Config valid / 配置文件有效'));
-      console.log(chalk.gray('\nConfig / 配置内容:'));
-      console.log(JSON.stringify(config, null, 2));
+      
+      if (options.json) {
+        console.log(JSON.stringify({ ok: true, config }, null, 2));
+      } else {
+        console.log(chalk.green('✓ Config valid / 配置文件有效'));
+        console.log(chalk.gray('\nConfig / 配置内容:'));
+        console.log(JSON.stringify(config, null, 2));
+      }
     } catch (error) {
-      console.error(chalk.red(`✗ Invalid config / 配置无效: ${(error as Error).message}`));
+      if (options.json) {
+        console.log(JSON.stringify({ ok: false, error: (error as Error).message }, null, 2));
+      } else {
+        console.error(chalk.red(`✗ Invalid config / 配置无效: ${(error as Error).message}`));
+      }
       process.exit(1);
     }
   });
