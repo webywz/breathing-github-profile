@@ -9,9 +9,6 @@
 
 Package: `@webywz/breathing-github-profile` · CLI binary: `breathing-profile` · Node 18+
 
-> Not on the npm registry yet. Install from GitHub until the first publish.  
-> 尚未发布到 npm，请先从 GitHub 安装。
-
 ---
 
 ## Features · 特性
@@ -32,30 +29,25 @@ Live example: [webywz/webywz](https://github.com/webywz/webywz).
 ## Install · 安装
 
 ```bash
-npm install github:webywz/breathing-github-profile
+npm i -g @webywz/breathing-github-profile
 npx breathing-profile --help
+# or without a global install:
+npx @webywz/breathing-github-profile --help
 ```
 
-From source (develop / unpublished):
+One-shot without installing globally:
+
+```bash
+npx --yes @webywz/breathing-github-profile generate -c config.yml -o README.md
+```
+
+From source (develop):
 
 ```bash
 git clone https://github.com/webywz/breathing-github-profile.git
 cd breathing-github-profile
 npm install
 npm run build
-```
-
-One-shot without a local clone:
-
-```bash
-npx --yes --package github:webywz/breathing-github-profile -- breathing-profile generate -c config.yml -o README.md
-```
-
-After the package is published:
-
-```bash
-npm i -g @webywz/breathing-github-profile
-npx @webywz/breathing-github-profile --help
 ```
 
 ---
@@ -198,7 +190,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: npm install github:webywz/breathing-github-profile
+      - run: npm i @webywz/breathing-github-profile
       - name: Refresh README
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
