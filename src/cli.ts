@@ -10,8 +10,8 @@ import { GitHubClient } from './github';
 import { ReadmeGenerator, updateReadmeMarkers } from './generator';
 import { readPackageVersion } from './version';
 
-function shouldDisableColor(options: { noColor?: boolean }): boolean {
-  return !!(options.noColor || process.env.NO_COLOR);
+function shouldDisableColor(options: { color?: boolean }): boolean {
+  return options.color === false || !!process.env.NO_COLOR;
 }
 
 const program = new Command();

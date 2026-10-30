@@ -11,13 +11,16 @@ function runCommand(
   env: Record<string, string> = {}
 ): { stdout: string; stderr: string; exitCode: number } {
   try {
+    // Force TTY-like color behavior for testing --no-color flag
+    // Clear NO_COLOR by default (tests that need it pass it explicitly)
+    const testEnv = { ...process.env, FORCE_COLOR: '1', NO_COLOR: undefined, ...env };
     const stdout = execSync(
       `npx tsx ${cliPath} ${command} ${args}`,
       { 
         encoding: 'utf-8',
         cwd: join(__dirname, '../..'),
         stdio: ['pipe', 'pipe', 'pipe'],
-        env: { ...process.env, ...env }
+        env: testEnv
       }
     );
     return { stdout, stderr: '', exitCode: 0 };
@@ -51,6 +54,14 @@ describe('--no-color flag', () => {
   });
 
   describe('init command', () => {
+    it('默认应该有彩色输出（有 ANSI 码）', () => {
+      const result = runCommand('init', `-o ${testConfigPath}`);
+      
+      expect(result.exitCode).toBe(0);
+      expect(hasAnsiCodes(result.stdout)).toBe(true);
+      expect(result.stdout).toContain('Config created');
+    });
+
     it('--no-color 应该禁用彩色输出', () => {
       const result = runCommand('init', `-o ${testConfigPath} --no-color`);
       
@@ -87,6 +98,14 @@ intro:
       writeFileSync(testConfigPath, validConfig, 'utf-8');
     });
 
+    it('默认应该有彩色输出（有 ANSI 码）', () => {
+      const result = runCommand('validate', `-c ${testConfigPath}`);
+      
+      expect(result.exitCode).toBe(0);
+      expect(hasAnsiCodes(result.stdout)).toBe(true);
+      expect(result.stdout).toContain('Config valid');
+    });
+
     it('--no-color 应该禁用彩色输出', () => {
       const result = runCommand('validate', `-c ${testConfigPath} --no-color`);
       
@@ -113,6 +132,15 @@ intro:
   en: Test
 `;
       writeFileSync(testConfigPath, validConfig, 'utf-8');
+    });
+
+    it('默认应该有彩色输出（有 ANSI 码）', () => {
+      const outputPath = join(testDir, 'README.md');
+      const result = runCommand('generate', `-c ${testConfigPath} -o ${outputPath}`);
+      
+      expect(result.exitCode).toBe(0);
+      expect(hasAnsiCodes(result.stdout)).toBe(true);
+      expect(result.stdout).toContain('Data saved');
     });
 
     it('--no-color 应该禁用彩色输出', () => {
@@ -167,6 +195,14 @@ old content
 <!--STATS:END-->
 `;
       writeFileSync(readmePath, readmeContent, 'utf-8');
+    });
+
+    it('默认应该有彩色输出（有 ANSI 码）', () => {
+      const result = runCommand('refresh', `-c ${testConfigPath} -r ${readmePath}`);
+      
+      expect(result.exitCode).toBe(0);
+      expect(hasAnsiCodes(result.stdout)).toBe(true);
+      expect(result.stdout).toContain('Data saved');
     });
 
     it('--no-color 应该禁用彩色输出', () => {
