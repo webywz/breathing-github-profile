@@ -2,7 +2,7 @@
 
 import { Command } from 'commander';
 import chalk from 'chalk';
-import ora from 'ora';
+import ora, { Ora } from 'ora';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { loadConfig } from './config';
@@ -11,7 +11,65 @@ import { ReadmeGenerator, updateReadmeMarkers } from './generator';
 import { readPackageVersion } from './version';
 
 function shouldDisableColor(options: { color?: boolean }): boolean {
+  // Commander maps --no-color to { color: false } on the command (and program).
   return options.color === false || !!process.env.NO_COLOR;
+}
+
+function isColorDisabled(commandOptions: { color?: boolean }): boolean {
+  return shouldDisableColor({
+    color: commandOptions.color === false || program.opts().color === false
+      ? false
+      : commandOptions.color
+  });
+}
+
+function applyNoColor(): void {
+  // FORCE_COLOR wins over NO_COLOR in chalk/supports-color; drop it so --no-color wins.
+  delete process.env.FORCE_COLOR;
+  process.env.NO_COLOR = '1';
+  chalk.level = 0;
+}
+
+function createSpinner(
+  text: string,
+  options: { json?: boolean; colorDisabled?: boolean }
+): { spinner: Ora | null; spinnerEnabled: boolean } {
+  if (options.json) {
+    return { spinner: null, spinnerEnabled: false };
+  }
+
+  const spinnerEnabled = !options.colorDisabled;
+  // Ora's public type has no isEnabled field — keep a local boolean and pass
+  // isEnabled only as a constructor option (TTY + FORCE_COLOR would otherwise spin).
+  const spinner = spinnerEnabled
+    ? ora({ text })
+    : ora({ text, isEnabled: false });
+  return { spinner, spinnerEnabled };
+}
+
+function spinnerSucceed(
+  spinner: Ora | null,
+  spinnerEnabled: boolean,
+  message: string
+): void {
+  // ora.succeed() prefixes log-symbols (chalk-colored ✔) even when constructed with isEnabled: false.
+  if (!spinner || !spinnerEnabled) {
+    console.log(message);
+    return;
+  }
+  spinner.succeed(chalk.green(message));
+}
+
+function spinnerFail(
+  spinner: Ora | null,
+  spinnerEnabled: boolean,
+  message: string
+): void {
+  if (!spinner || !spinnerEnabled) {
+    console.error(message);
+    return;
+  }
+  spinner.fail(chalk.red(message));
 }
 
 const program = new Command();
@@ -19,7 +77,8 @@ const program = new Command();
 program
   .name('breathing-profile')
   .description('Living GitHub profile README generator · 会呼吸的 GitHub profile README 生成器')
-  .version(readPackageVersion());
+  .version(readPackageVersion())
+  .option('--no-color', 'Disable colored output · 禁用彩色输出');
 
 program
   .command('generate')
@@ -29,10 +88,17 @@ program
   .option('-j, --json', 'Output JSON only · 仅输出 JSON')
   .option('--no-color', 'Disable colored output · 禁用彩色输出')
   .action(async (options) => {
-    if (shouldDisableColor(options)) {
-      chalk.level = 0;
+    const colorDisabled = isColorDisabled(options);
+    if (colorDisabled) {
+      applyNoColor();
     }
-    const spinner = options.json ? null : ora('Generating README… · 正在生成 README...').start();
+    const { spinner, spinnerEnabled } = createSpinner('Generating README… · 正在生成 README...', {
+      json: options.json,
+      colorDisabled
+    });
+    if (spinnerEnabled && spinner) {
+      spinner.start();
+    }
 
     try {
       if (!existsSync(options.config)) {
@@ -76,7 +142,7 @@ program
           sections
         }, null, 2));
       } else {
-        spinner!.succeed(chalk.green(`✓ README written / 已生成: ${options.output}`));
+        spinnerSucceed(spinner, spinnerEnabled, `✓ README written / 已生成: ${options.output}`);
         console.log(chalk.gray(`  Data saved / 数据已保存: ${dataPath}`));
       }
     } catch (error) {
@@ -86,7 +152,7 @@ program
           error: (error as Error).message
         }, null, 2));
       } else {
-        spinner!.fail(chalk.red('Generate failed / 生成失败'));
+        spinnerFail(spinner, spinnerEnabled, 'Generate failed / 生成失败');
         console.error(chalk.red(`Error / 错误: ${(error as Error).message}`));
       }
       process.exit(1);
@@ -101,10 +167,17 @@ program
   .option('-j, --json', 'Output JSON only · 仅输出 JSON')
   .option('--no-color', 'Disable colored output · 禁用彩色输出')
   .action(async (options) => {
-    if (shouldDisableColor(options)) {
-      chalk.level = 0;
+    const colorDisabled = isColorDisabled(options);
+    if (colorDisabled) {
+      applyNoColor();
     }
-    const spinner = options.json ? null : ora('Refreshing README… · 正在刷新 README...').start();
+    const { spinner, spinnerEnabled } = createSpinner('Refreshing README… · 正在刷新 README...', {
+      json: options.json,
+      colorDisabled
+    });
+    if (spinnerEnabled && spinner) {
+      spinner.start();
+    }
 
     try {
       if (!existsSync(options.config)) {
@@ -169,7 +242,7 @@ program
           path: options.readme
         }, null, 2));
       } else {
-        spinner!.succeed(chalk.green(`✓ README refreshed / 已刷新: ${options.readme}`));
+        spinnerSucceed(spinner, spinnerEnabled, `✓ README refreshed / 已刷新: ${options.readme}`);
         console.log(chalk.gray(`  Data saved / 数据已保存: ${join(dataDir, 'profile.json')}`));
       }
     } catch (error) {
@@ -179,7 +252,7 @@ program
           error: (error as Error).message
         }, null, 2));
       } else {
-        spinner!.fail(chalk.red('Refresh failed / 刷新失败'));
+        spinnerFail(spinner, spinnerEnabled, 'Refresh failed / 刷新失败');
         console.error(chalk.red(`Error / 错误: ${(error as Error).message}`));
       }
       process.exit(1);
@@ -194,8 +267,8 @@ program
   .option('-j, --json', 'Output JSON only · 仅输出 JSON')
   .option('--no-color', 'Disable colored output · 禁用彩色输出')
   .action(async (options) => {
-    if (shouldDisableColor(options)) {
-      chalk.level = 0;
+    if (isColorDisabled(options)) {
+      applyNoColor();
     }
     try {
       const outputPath = options.output;
@@ -266,8 +339,8 @@ program
   .option('-j, --json', 'Output JSON only · 仅输出 JSON')
   .option('--no-color', 'Disable colored output · 禁用彩色输出')
   .action(async (options) => {
-    if (shouldDisableColor(options)) {
-      chalk.level = 0;
+    if (isColorDisabled(options)) {
+      applyNoColor();
     }
     try {
       if (!existsSync(options.config)) {
