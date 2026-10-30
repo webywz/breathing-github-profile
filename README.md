@@ -112,6 +112,7 @@ Then edit `config.yml` to replace `octocat` with your GitHub username.
 npx breathing-profile generate -c config.yml -o README.md
 npx breathing-profile generate -c config.yml -o README.md --json  # machine-readable CI output
 npx breathing-profile refresh  -c config.yml -r README.md
+npx breathing-profile refresh  -c config.yml -r README.md --json  # machine-readable CI output
 npx breathing-profile validate -c config.yml
 npx breathing-profile validate -c config.yml --json  # machine-readable CI output
 ```
@@ -123,6 +124,7 @@ npx breathing-profile validate -c config.yml --json  # machine-readable CI outpu
 | `generate` | Write a full README from config + GitHub data | 按配置与 GitHub 数据生成完整 README |
 | `generate --json` | Generate and output JSON (for CI) | 生成 README 并输出 JSON（供 CI 使用） |
 | `refresh` | Rewrite marker sections only | 只刷新标记区 |
+| `refresh --json` | Refresh markers; output JSON (for CI) | 刷新标记区，输出 JSON（供 CI 使用） |
 | `validate` | Check the config file | 校验配置 |
 | `validate --json` | Check the config file; output JSON (for CI) | 校验配置，输出 JSON（供 CI 使用） |
 
@@ -229,6 +231,37 @@ npx breathing-profile generate --json -c config.yml -o README.md
 > **Note:** `--json` mode still writes README to `--output` and saves `data/profile.json`.  
 > **注意：** `--json` 模式下仍然会写入 README 到 `--output` 并保存 `data/profile.json`。
 
+#### Refresh with `--json` · 使用 `--json` 刷新
+
+For machine-readable CI refresh, use `--json` (or `-j`):  
+在 CI 中使用 `--json` (或 `-j`) 刷新并获取机器可读的输出：
+
+```bash
+npx breathing-profile refresh --json -c config.yml -r README.md
+```
+
+**Success output (exit 0) / 成功时（退出码 0）：**
+
+```json
+{
+  "ok": true,
+  "action": "refreshed",
+  "path": "README.md"
+}
+```
+
+**Failure output (exit 1) / 失败时（退出码 1）：**
+
+```json
+{
+  "ok": false,
+  "error": "Config not found / 配置文件不存在: config.yml"
+}
+```
+
+> **Note:** `--json` mode still writes updated README to `--readme` and saves `data/profile.json`.  
+> **注意：** `--json` 模式下仍然会写入更新后的 README 到 `--readme` 并保存 `data/profile.json`。
+
 Optional: set `GITHUB_TOKEN` or `GH_TOKEN` (or use `secrets.GITHUB_TOKEN` in Actions) for higher API rate limits.
 
 ---
@@ -333,7 +366,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: npm i @webywz/breathing-github-profile@1.1.3
+      - run: npm i @webywz/breathing-github-profile@1.1.4
       - name: Refresh README
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
