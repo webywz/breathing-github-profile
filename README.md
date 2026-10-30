@@ -112,6 +112,7 @@ Then edit `config.yml` to replace `octocat` with your GitHub username.
 npx breathing-profile generate -c config.yml -o README.md
 npx breathing-profile refresh  -c config.yml -r README.md
 npx breathing-profile validate -c config.yml
+npx breathing-profile validate -c config.yml --json  # machine-readable CI output
 ```
 
 | Command | EN | 中文 |
@@ -120,6 +121,38 @@ npx breathing-profile validate -c config.yml
 | `generate` | Write a full README from config + GitHub data | 按配置与 GitHub 数据生成完整 README |
 | `refresh` | Rewrite marker sections only | 只刷新标记区 |
 | `validate` | Check the config file | 校验配置 |
+| `validate --json` | Check the config file; output JSON (for CI) | 校验配置，输出 JSON（供 CI 使用） |
+
+#### Validate with `--json` · 使用 `--json` 验证
+
+For machine-readable CI checks, use `--json` (or `-j`):  
+在 CI 中使用 `--json` (或 `-j`) 获取机器可读的输出：
+
+```bash
+npx breathing-profile validate --json -c config.yml
+```
+
+**Success output (exit 0) / 成功时（退出码 0）：**
+
+```json
+{
+  "ok": true,
+  "config": {
+    "username": "your-username",
+    "intro": { "zh": "...", "en": "..." },
+    ...
+  }
+}
+```
+
+**Failure output (exit 1) / 失败时（退出码 1）：**
+
+```json
+{
+  "ok": false,
+  "error": "配置中必须包含有效的 username 字段"
+}
+```
 
 Optional: set `GITHUB_TOKEN` or `GH_TOKEN` (or use `secrets.GITHUB_TOKEN` in Actions) for higher API rate limits.
 
