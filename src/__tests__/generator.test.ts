@@ -87,6 +87,20 @@ describe('ReadmeGenerator', () => {
     expect(readme).toContain('JavaScript');
   });
 
+  it('仅中文 intro 只输出中文关于我块', () => {
+    const config: ProfileConfig = {
+      username: 'testuser',
+      intro: { zh: '我是一个测试用户' },
+      sections: [{ type: 'stats', marker: 'STATS' }]
+    };
+    const generator = new ReadmeGenerator(config, mockData);
+    const readme = generator.generate();
+
+    expect(readme).toContain('## 👨‍💻 关于我');
+    expect(readme).toContain('我是一个测试用户');
+    expect(readme).not.toContain('## 👨‍💻 About Me');
+  });
+
   it('应该包含页脚时间戳', () => {
     const generator = new ReadmeGenerator(mockConfig, mockData);
     const readme = generator.generate();

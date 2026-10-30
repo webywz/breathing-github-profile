@@ -36,16 +36,16 @@ export class ReadmeGenerator {
     const { intro } = this.config;
     const parts: string[] = [];
 
-    if (intro.zh) {
+    if (intro.zh?.trim()) {
       parts.push(`## 👨‍💻 关于我
 
-${intro.zh}`);
+${intro.zh.trim()}`);
     }
 
-    if (intro.en) {
+    if (intro.en?.trim()) {
       parts.push(`## 👨‍💻 About Me
 
-${intro.en}`);
+${intro.en.trim()}`);
     }
 
     return parts.join('\n\n');

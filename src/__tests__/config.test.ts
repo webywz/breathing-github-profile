@@ -36,7 +36,45 @@ describe('Config Validation', () => {
       intro: {}
     } as any;
 
-    expect(() => validateConfig(config)).toThrow('zh 或 en');
+    expect(() => validateConfig(config)).toThrow(/zh 或 en|non-empty zh or en/);
+  });
+
+  it('应该通过仅中文 intro', () => {
+    const config: ProfileConfig = {
+      username: 'test',
+      intro: { zh: '你好，我是开发者' }
+    };
+
+    expect(() => validateConfig(config)).not.toThrow();
+  });
+
+  it('应该通过仅英文 intro', () => {
+    const config: ProfileConfig = {
+      username: 'test',
+      intro: { en: 'Hello, I am a developer' }
+    };
+
+    expect(() => validateConfig(config)).not.toThrow();
+  });
+
+  it('空白 zh 且无 en 应失败，且错误文案中英双语', () => {
+    const config = {
+      username: 'test',
+      intro: { zh: '  ' }
+    } as any;
+
+    expect(() => validateConfig(config)).toThrow(
+      /intro must include at least one non-empty zh or en \/ intro 必须至少包含非空的 zh 或 en 字段/
+    );
+  });
+
+  it('空白 en 且有非空 zh 应通过', () => {
+    const config: ProfileConfig = {
+      username: 'test',
+      intro: { zh: '你好', en: '   ' }
+    };
+
+    expect(() => validateConfig(config)).not.toThrow();
   });
 
   it('应该验证 featuredRepos 是数组', () => {

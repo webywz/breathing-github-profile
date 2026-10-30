@@ -18,6 +18,10 @@ export function loadConfig(configPath: string): ProfileConfig {
   return config;
 }
 
+function hasIntroText(value: unknown): boolean {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
 export function validateConfig(config: ProfileConfig): void {
   if (!config.username || typeof config.username !== 'string') {
     throw new Error('配置中必须包含有效的 username 字段');
@@ -27,8 +31,11 @@ export function validateConfig(config: ProfileConfig): void {
     throw new Error('配置中必须包含 intro 对象');
   }
 
-  if (!config.intro.zh && !config.intro.en) {
-    throw new Error('intro 必须至少包含 zh 或 en 字段');
+  // Blank / whitespace-only strings count as missing; zh-only or en-only is OK.
+  if (!hasIntroText(config.intro.zh) && !hasIntroText(config.intro.en)) {
+    throw new Error(
+      'intro must include at least one non-empty zh or en / intro 必须至少包含非空的 zh 或 en 字段'
+    );
   }
 
   if (config.featuredRepos && !Array.isArray(config.featuredRepos)) {
