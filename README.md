@@ -7,7 +7,7 @@
 [![Test](https://github.com/webywz/breathing-github-profile/actions/workflows/test.yml/badge.svg)](https://github.com/webywz/breathing-github-profile/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
-Package: `@webywz/breathing-github-profile` · CLI binary: `breathing-profile` · Node 18+
+Package: `@webywz/breathing-github-profile` · CLI binary: `breathing-profile` · Node.js 18.18+
 
 ---
 
@@ -113,7 +113,7 @@ Optional: set `GITHUB_TOKEN` or `GH_TOKEN` (or use `secrets.GITHUB_TOKEN` in Act
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `username` | string | yes | GitHub login |
-| `intro.zh` / `intro.en` | string | one of zh/en | Bilingual intro blocks |
+| `intro.zh` / `intro.en` | string | one of zh/en (non-empty) | zh-only, en-only, or both · 仅中文 / 仅英文 / 双语均可 |
 | `featuredRepos` | string[] | no | Pinned repo names |
 | `sections` | Section[] | no | Ordered sections |
 | `style` | StyleConfig | no | Theme / layout knobs |
@@ -190,7 +190,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: npm i @webywz/breathing-github-profile@1.0.1
+      - run: npm i @webywz/breathing-github-profile@1.0.2
       - name: Refresh README
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
