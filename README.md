@@ -117,18 +117,23 @@ npx breathing-profile validate -c config.yml
 npx breathing-profile validate -c config.yml --json  # machine-readable CI output
 npx breathing-profile generate --no-color  # disable colored output
 NO_COLOR=1 npx breathing-profile generate  # also disables colors
+npx breathing-profile generate --quiet     # no spinner / success summary
 ```
 
 | Command | EN | 中文 |
 | --- | --- | --- |
 | `init` | Create a starter config.yml (use `--force` to overwrite) | 创建初始 config.yml（使用 `--force` 覆盖） |
 | `init --json` | Create config; output JSON (for CI) | 创建配置，输出 JSON（供 CI 使用） |
+| `init --quiet` | Create config; no success summary | 创建配置，不打印成功摘要 |
 | `generate` | Write a full README from config + GitHub data | 按配置与 GitHub 数据生成完整 README |
 | `generate --json` | Generate and output JSON (for CI) | 生成 README 并输出 JSON（供 CI 使用） |
+| `generate --quiet` | Generate; no spinner / success summary | 生成 README，不打印 spinner 与成功摘要 |
 | `refresh` | Rewrite marker sections only | 只刷新标记区 |
 | `refresh --json` | Refresh markers; output JSON (for CI) | 刷新标记区，输出 JSON（供 CI 使用） |
+| `refresh --quiet` | Refresh; no spinner / success summary | 刷新标记区，不打印 spinner 与成功摘要 |
 | `validate` | Check the config file | 校验配置 |
 | `validate --json` | Check the config file; output JSON (for CI) | 校验配置，输出 JSON（供 CI 使用） |
+| `validate --quiet` | Check the config; no success summary | 校验配置，不打印成功摘要 |
 
 **Color output · 彩色输出**
 
@@ -138,6 +143,17 @@ By default, the CLI uses colored output (via ANSI escape codes). To disable:
 - Add `--no-color` flag to any command · 在任何命令后添加 `--no-color` 标志
 - Or set `NO_COLOR=1` environment variable · 或设置 `NO_COLOR=1` 环境变量
 - `--json` mode always outputs plain JSON without colors · `--json` 模式始终输出无颜色的纯 JSON
+
+**Quiet output · 静默输出**
+
+`--quiet` (or `-q`) suppresses the spinner and human success summary lines. Errors still go to stderr with a non-zero exit. Combined with `--json`, JSON stdout is unchanged.  
+`--quiet`（或 `-q`）会隐藏 spinner 与人类可读的成功摘要。错误仍写入 stderr 并以非零退出。与 `--json` 同时使用时，stdout 仍为 JSON。
+
+```bash
+npx breathing-profile generate --quiet -c config.yml -o README.md
+npx breathing-profile --quiet validate -c config.yml
+npx breathing-profile generate --quiet --json -c config.yml -o README.md  # JSON unchanged
+```
 
 #### Init with `--json` · 使用 `--json` 初始化
 
