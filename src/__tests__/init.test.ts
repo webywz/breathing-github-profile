@@ -113,4 +113,76 @@ describe('Init Command', () => {
       }
     }
   });
+
+  describe('JSON 模式（--json）', () => {
+    it('成功创建时应该输出 JSON，ok: true，action: created', () => {
+      const result = runInit(`--json -o ${testOutputPath}`);
+      
+      expect(result.exitCode).toBe(0);
+      expect(existsSync(testOutputPath)).toBe(true);
+      
+      const parsed = JSON.parse(result.stdout);
+      expect(parsed.ok).toBe(true);
+      expect(parsed.action).toBe('created');
+      expect(parsed.path).toBe(testOutputPath);
+      
+      const content = readFileSync(testOutputPath, 'utf-8');
+      expect(content).toContain('username:');
+    });
+
+    it('文件已存在时应该输出 JSON，ok: false', () => {
+      writeFileSync(testOutputPath, 'existing', 'utf-8');
+      
+      const result = runInit(`--json -o ${testOutputPath}`);
+      
+      expect(result.exitCode).toBe(1);
+      
+      const parsed = JSON.parse(result.stdout);
+      expect(parsed.ok).toBe(false);
+      expect(parsed.error).toBeDefined();
+      expect(parsed.error).toMatch(/already exists/);
+    });
+
+    it('使用 --force 覆盖时应该输出 action: updated', () => {
+      writeFileSync(testOutputPath, 'old', 'utf-8');
+      
+      const result = runInit(`--json -o ${testOutputPath} --force`);
+      
+      expect(result.exitCode).toBe(0);
+      
+      const parsed = JSON.parse(result.stdout);
+      expect(parsed.ok).toBe(true);
+      expect(parsed.action).toBe('updated');
+      expect(parsed.path).toBe(testOutputPath);
+      
+      const content = readFileSync(testOutputPath, 'utf-8');
+      expect(content).not.toBe('old');
+      expect(content).toContain('username:');
+    });
+
+    it('JSON 模式下不应该输出 chalk 文本', () => {
+      const result = runInit(`-j -o ${testOutputPath}`);
+      
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).not.toContain('✓');
+      expect(result.stdout).not.toContain('Config created');
+      expect(result.stdout).not.toContain('配置文件已创建');
+      expect(result.stdout).not.toContain('Next steps');
+      
+      const parsed = JSON.parse(result.stdout);
+      expect(parsed.ok).toBe(true);
+    });
+
+    it('JSON 输出应该是合法的、可解析的', () => {
+      const result = runInit(`--json -o ${testOutputPath}`);
+      
+      expect(result.exitCode).toBe(0);
+      expect(() => JSON.parse(result.stdout)).not.toThrow();
+      
+      const parsed = JSON.parse(result.stdout);
+      expect(parsed).toHaveProperty('ok');
+      expect(parsed).toHaveProperty('action');
+      expect(parsed).toHaveProperty('path');
+    });
+  });
 });

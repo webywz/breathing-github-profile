@@ -119,11 +119,50 @@ npx breathing-profile validate -c config.yml --json  # machine-readable CI outpu
 | Command | EN | 中文 |
 | --- | --- | --- |
 | `init` | Create a starter config.yml (use `--force` to overwrite) | 创建初始 config.yml（使用 `--force` 覆盖） |
+| `init --json` | Create config; output JSON (for CI) | 创建配置，输出 JSON（供 CI 使用） |
 | `generate` | Write a full README from config + GitHub data | 按配置与 GitHub 数据生成完整 README |
 | `generate --json` | Generate and output JSON (for CI) | 生成 README 并输出 JSON（供 CI 使用） |
 | `refresh` | Rewrite marker sections only | 只刷新标记区 |
 | `validate` | Check the config file | 校验配置 |
 | `validate --json` | Check the config file; output JSON (for CI) | 校验配置，输出 JSON（供 CI 使用） |
+
+#### Init with `--json` · 使用 `--json` 初始化
+
+For machine-readable CI init, use `--json` (or `-j`):  
+在 CI 中使用 `--json` (或 `-j`) 初始化并获取机器可读的输出：
+
+```bash
+npx breathing-profile init --json -o config.yml
+```
+
+**Success output (exit 0) / 成功时（退出码 0）：**
+
+```json
+{
+  "ok": true,
+  "action": "created",
+  "path": "config.yml"
+}
+```
+
+**With `--force` (exit 0) / 使用 `--force` 覆盖（退出码 0）：**
+
+```json
+{
+  "ok": true,
+  "action": "updated",
+  "path": "config.yml"
+}
+```
+
+**Failure output (exit 1) / 失败时（退出码 1）：**
+
+```json
+{
+  "ok": false,
+  "error": "Config already exists: config.yml. Use --force to overwrite."
+}
+```
 
 #### Validate with `--json` · 使用 `--json` 验证
 
@@ -294,7 +333,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: npm i @webywz/breathing-github-profile@1.1.0
+      - run: npm i @webywz/breathing-github-profile@1.1.3
       - name: Refresh README
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
