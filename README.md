@@ -115,6 +115,8 @@ npx breathing-profile refresh  -c config.yml -r README.md
 npx breathing-profile refresh  -c config.yml -r README.md --json  # machine-readable CI output
 npx breathing-profile validate -c config.yml
 npx breathing-profile validate -c config.yml --json  # machine-readable CI output
+npx breathing-profile generate --no-color  # disable colored output
+NO_COLOR=1 npx breathing-profile generate  # also disables colors
 ```
 
 | Command | EN | 中文 |
@@ -127,6 +129,15 @@ npx breathing-profile validate -c config.yml --json  # machine-readable CI outpu
 | `refresh --json` | Refresh markers; output JSON (for CI) | 刷新标记区，输出 JSON（供 CI 使用） |
 | `validate` | Check the config file | 校验配置 |
 | `validate --json` | Check the config file; output JSON (for CI) | 校验配置，输出 JSON（供 CI 使用） |
+
+**Color output · 彩色输出**
+
+By default, the CLI uses colored output (via ANSI escape codes). To disable:  
+默认情况下，CLI 使用彩色输出（通过 ANSI 转义码）。禁用彩色输出：
+
+- Add `--no-color` flag to any command · 在任何命令后添加 `--no-color` 标志
+- Or set `NO_COLOR=1` environment variable · 或设置 `NO_COLOR=1` 环境变量
+- `--json` mode always outputs plain JSON without colors · `--json` 模式始终输出无颜色的纯 JSON
 
 #### Init with `--json` · 使用 `--json` 初始化
 
@@ -366,7 +377,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: npm i @webywz/breathing-github-profile@1.1.4
+      - run: npm i @webywz/breathing-github-profile@1.1.5
       - name: Refresh README
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
