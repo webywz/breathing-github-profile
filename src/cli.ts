@@ -15,6 +15,14 @@ function shouldDisableColor(options: { color?: boolean }): boolean {
   return options.color === false || !!process.env.NO_COLOR;
 }
 
+function isColorDisabled(commandOptions: { color?: boolean }): boolean {
+  return shouldDisableColor({
+    color: commandOptions.color === false || program.opts().color === false
+      ? false
+      : commandOptions.color
+  });
+}
+
 function applyNoColor(): void {
   // FORCE_COLOR wins over NO_COLOR in chalk/supports-color; drop it so --no-color wins.
   delete process.env.FORCE_COLOR;
@@ -38,6 +46,25 @@ function createSpinner(
   return ora({ text });
 }
 
+function spinnerSucceed(spinner: Ora | null, message: string): void {
+  // ora.succeed() always prefixes log-symbols (chalk-colored ✔) even when isEnabled is false.
+  if (!spinner || !spinner.isEnabled) {
+    spinner?.stop();
+    console.log(message);
+    return;
+  }
+  spinner.succeed(chalk.green(message));
+}
+
+function spinnerFail(spinner: Ora | null, message: string): void {
+  if (!spinner || !spinner.isEnabled) {
+    spinner?.stop();
+    console.error(message);
+    return;
+  }
+  spinner.fail(chalk.red(message));
+}
+
 const program = new Command();
 
 program
@@ -54,9 +81,7 @@ program
   .option('-j, --json', 'Output JSON only · 仅输出 JSON')
   .option('--no-color', 'Disable colored output · 禁用彩色输出')
   .action(async (options) => {
-    const colorDisabled = shouldDisableColor({
-      color: options.color === false || program.opts().color === false ? false : options.color
-    });
+    const colorDisabled = isColorDisabled(options);
     if (colorDisabled) {
       applyNoColor();
     }
@@ -64,7 +89,7 @@ program
       json: options.json,
       colorDisabled
     });
-    if (spinner) {
+    if (spinner?.isEnabled) {
       spinner.start();
     }
 
@@ -110,7 +135,7 @@ program
           sections
         }, null, 2));
       } else {
-        spinner!.succeed(chalk.green(`✓ README written / 已生成: ${options.output}`));
+        spinnerSucceed(spinner, `✓ README written / 已生成: ${options.output}`);
         console.log(chalk.gray(`  Data saved / 数据已保存: ${dataPath}`));
       }
     } catch (error) {
@@ -120,7 +145,7 @@ program
           error: (error as Error).message
         }, null, 2));
       } else {
-        spinner!.fail(chalk.red('Generate failed / 生成失败'));
+        spinnerFail(spinner, 'Generate failed / 生成失败');
         console.error(chalk.red(`Error / 错误: ${(error as Error).message}`));
       }
       process.exit(1);
@@ -135,9 +160,7 @@ program
   .option('-j, --json', 'Output JSON only · 仅输出 JSON')
   .option('--no-color', 'Disable colored output · 禁用彩色输出')
   .action(async (options) => {
-    const colorDisabled = shouldDisableColor({
-      color: options.color === false || program.opts().color === false ? false : options.color
-    });
+    const colorDisabled = isColorDisabled(options);
     if (colorDisabled) {
       applyNoColor();
     }
@@ -145,7 +168,7 @@ program
       json: options.json,
       colorDisabled
     });
-    if (spinner) {
+    if (spinner?.isEnabled) {
       spinner.start();
     }
 
@@ -212,7 +235,7 @@ program
           path: options.readme
         }, null, 2));
       } else {
-        spinner!.succeed(chalk.green(`✓ README refreshed / 已刷新: ${options.readme}`));
+        spinnerSucceed(spinner, `✓ README refreshed / 已刷新: ${options.readme}`);
         console.log(chalk.gray(`  Data saved / 数据已保存: ${join(dataDir, 'profile.json')}`));
       }
     } catch (error) {
@@ -222,7 +245,7 @@ program
           error: (error as Error).message
         }, null, 2));
       } else {
-        spinner!.fail(chalk.red('Refresh failed / 刷新失败'));
+        spinnerFail(spinner, 'Refresh failed / 刷新失败');
         console.error(chalk.red(`Error / 错误: ${(error as Error).message}`));
       }
       process.exit(1);
@@ -237,9 +260,7 @@ program
   .option('-j, --json', 'Output JSON only · 仅输出 JSON')
   .option('--no-color', 'Disable colored output · 禁用彩色输出')
   .action(async (options) => {
-    if (shouldDisableColor({
-      color: options.color === false || program.opts().color === false ? false : options.color
-    })) {
+    if (isColorDisabled(options)) {
       applyNoColor();
     }
     try {
@@ -311,9 +332,7 @@ program
   .option('-j, --json', 'Output JSON only · 仅输出 JSON')
   .option('--no-color', 'Disable colored output · 禁用彩色输出')
   .action(async (options) => {
-    if (shouldDisableColor({
-      color: options.color === false || program.opts().color === false ? false : options.color
-    })) {
+    if (isColorDisabled(options)) {
       applyNoColor();
     }
     try {
