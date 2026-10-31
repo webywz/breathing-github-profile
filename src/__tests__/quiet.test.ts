@@ -188,6 +188,17 @@ describe('--quiet flag', () => {
       expect(existsSync(join(testDir, 'README.md'))).toBe(true);
     });
 
+    it('--html --theme paper --quiet 仍输出 HTML，无成功摘要', () => {
+      const result = runCli(
+        ['generate', '--html', '--theme', 'paper', '--quiet', '-c', testConfigPath, '-o', join(testDir, 'README.md')],
+        testDir
+      );
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toMatch(/<!DOCTYPE html>/i);
+      expect(result.stdout).toContain('--bg: #f6f0e4;');
+      expectNoHumanSuccess(result.stdout + result.stderr);
+    });
+
     it('--html path --quiet 写入文件且 stdout 为空', () => {
       const htmlPath = join(testDir, 'quiet.html');
       const result = runCli(

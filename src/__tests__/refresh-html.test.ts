@@ -79,6 +79,15 @@ describe('Refresh Command with --html', () => {
     expect(result.stdout).not.toMatch(/<!DOCTYPE html>/i);
   });
 
+  it('--theme paper restyles HTML chrome and still refreshes README', () => {
+    const result = runRefresh('--html --theme paper -c config.yml -r README.md', testDir);
+
+    expectExit(result, 0);
+    expect(result.stdout).toMatch(/<!DOCTYPE html>/i);
+    expect(result.stdout).toContain('--bg: #f6f0e4;');
+    expect(readFileSync(join(testDir, 'README.md'), 'utf-8')).toContain('STATS:START');
+  });
+
   it('--html and --json is a usage error and does not refresh', () => {
     const before = readFileSync(join(testDir, 'README.md'), 'utf-8');
     const result = runRefresh('--html --json -c config.yml -r README.md', testDir);

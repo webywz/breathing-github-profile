@@ -83,6 +83,16 @@ describe('Generate Command with --html', () => {
     expect(() => JSON.parse(result.stdout)).toThrow();
   });
 
+  it('--theme fog restyles HTML chrome and leaves README unchanged', () => {
+    const result = runGenerate('--html --theme fog -c config.yml -o README.md', testDir);
+
+    expectExit(result, 0);
+    expect(result.stdout).toMatch(/<!DOCTYPE html>/i);
+    expect(result.stdout).toContain('--bg: #e8eef4;');
+    expect(readFileSync(join(testDir, 'README.md'), 'utf-8')).toContain('octocat');
+    expect(existsSync(join(testDir, 'data', 'profile.json'))).toBe(true);
+  });
+
   it('--html --json with a path is still a usage error', () => {
     const result = runGenerate(
       '--json --html preview.html -c config.yml -o README.md',

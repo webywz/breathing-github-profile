@@ -4,13 +4,20 @@ import { tmpdir } from 'os';
 import { ReadmeGenerator } from '../generator';
 import { ProfileConfig, ProfileData } from '../types';
 import {
+  DEFAULT_HTML_THEME,
+  HTML_THEMES,
+  THEME_TOKENS,
   escapeHtml,
   formatProfileHtml,
+  isHtmlTheme,
+  parseHtmlTheme,
   profileHtmlInputFrom,
   renderReadmePreview,
   resolveHtmlTarget,
-  writeHtmlPreview
+  writeHtmlPreview,
+  type HtmlTheme
 } from '../html';
+import { UsageError } from '../locale';
 import { readPackageVersion } from '../version';
 
 const mockConfig: ProfileConfig = {
@@ -185,6 +192,67 @@ describe('formatProfileHtml', () => {
     }, { locale: 'en' });
     expect(html).toContain('refresh');
     expect(html).not.toContain('generate ·');
+  });
+
+  it('default htmlTheme matches ember CSS (1.1.11 look)', () => {
+    const input = sampleInput();
+    const omitted = formatProfileHtml(input);
+    const ember = formatProfileHtml(input, { htmlTheme: 'ember' });
+    expect(omitted).toBe(ember);
+    expect(omitted).toContain(`--bg: ${THEME_TOKENS.ember['--bg']};`);
+    expect(omitted).toContain('border-color: #24582d;');
+    expect(omitted).not.toContain('var(--accent-border)');
+    expect(DEFAULT_HTML_THEME).toBe('ember');
+  });
+
+  it('each HTML theme has a distinct palette', () => {
+    const input = sampleInput();
+    const css = Object.fromEntries(
+      HTML_THEMES.map((name) => [name, formatProfileHtml(input, { htmlTheme: name })])
+    ) as Record<HtmlTheme, string>;
+    const bgs = HTML_THEMES.map((name) => THEME_TOKENS[name]['--bg']);
+    expect(new Set(bgs).size).toBe(HTML_THEMES.length);
+    for (const name of HTML_THEMES) {
+      expect(css[name]).toContain(`--bg: ${THEME_TOKENS[name]['--bg']};`);
+      expect(css[name]).not.toMatch(CDN_RE);
+      expect(css[name]).not.toMatch(/<script\s+src=/i);
+      expect(css[name]).not.toMatch(/<link\s+[^>]*href=/i);
+    }
+    expect(css.fog).toContain('var(--accent-border)');
+    expect(css.midnight).toContain(`--bg: ${THEME_TOKENS.midnight['--bg']};`);
+    expect(css.paper).toContain(`--bg: ${THEME_TOKENS.paper['--bg']};`);
+    expect(css.ember).not.toBe(css.fog);
+    expect(css.ember).not.toBe(css.midnight);
+    expect(css.ember).not.toBe(css.paper);
+    expect(css.fog).not.toBe(css.midnight);
+    expect(css.fog).not.toBe(css.paper);
+    expect(css.midnight).not.toBe(css.paper);
+  });
+});
+
+describe('parseHtmlTheme / HTML_THEMES', () => {
+  it('accepts the four HTML palettes', () => {
+    expect(HTML_THEMES).toEqual(['ember', 'fog', 'midnight', 'paper']);
+    expect(parseHtmlTheme('ember')).toBe('ember');
+    expect(parseHtmlTheme('fog')).toBe('fog');
+    expect(isHtmlTheme('paper')).toBe(true);
+    expect(isHtmlTheme('light')).toBe(false);
+  });
+
+  it('rejects missing or invalid names, including config theme values', () => {
+    expect(() => parseHtmlTheme(undefined)).toThrow(UsageError);
+    expect(() => parseHtmlTheme('')).toThrow(/--theme requires one of/);
+    expect(() => parseHtmlTheme('solar')).toThrow(/Invalid --theme "solar"/);
+    expect(() => parseHtmlTheme('light')).toThrow(/ember, fog, midnight, paper/);
+    expect(() => parseHtmlTheme('dark')).toThrow(UsageError);
+    expect(() => parseHtmlTheme('auto')).toThrow(UsageError);
+    try {
+      parseHtmlTheme('neon');
+    } catch (err) {
+      expect(err).toBeInstanceOf(UsageError);
+      expect((err as Error).name).toBe('UsageError');
+      expect((err as Error).message).toMatch(/ember, fog, midnight, paper/);
+    }
   });
 });
 

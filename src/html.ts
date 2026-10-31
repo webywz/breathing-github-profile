@@ -1,8 +1,31 @@
 import { dirname } from 'path';
 import { mkdirSync, writeFileSync } from 'fs';
-import { Locale, cliText } from './locale';
+import { Locale, UsageError, cliText } from './locale';
 import { ProfileConfig, ProfileData } from './types';
 import { readPackageVersion } from './version';
+
+/**
+ * Offline HTML preview palettes (`--theme`).
+ * Distinct from reserved config `style.theme` (`light` | `dark` | `auto`).
+ * `ember` is the 1.1.11 default look.
+ */
+export const HTML_THEMES = ['ember', 'fog', 'midnight', 'paper'] as const;
+export type HtmlTheme = (typeof HTML_THEMES)[number];
+export const DEFAULT_HTML_THEME: HtmlTheme = 'ember';
+
+export function isHtmlTheme(name: string): name is HtmlTheme {
+  return (HTML_THEMES as readonly string[]).includes(name);
+}
+
+export function parseHtmlTheme(raw: string | undefined): HtmlTheme {
+  if (raw === undefined || raw === '') {
+    throw new UsageError(`--theme requires one of: ${HTML_THEMES.join(', ')}`);
+  }
+  if (!isHtmlTheme(raw)) {
+    throw new UsageError(`Invalid --theme "${raw}". Use ${HTML_THEMES.join(', ')}.`);
+  }
+  return raw;
+}
 
 export type HtmlAction = 'generate' | 'refresh';
 
@@ -32,7 +55,154 @@ export interface ProfileHtmlInput {
 
 export interface HtmlFormatOptions {
   locale?: Locale;
+  /** HTML preview palette only; default `ember` (= 1.1.11 look). Not config `theme`. */
+  htmlTheme?: HtmlTheme;
 }
+
+/** CSS custom properties for each HTML palette. `ember` matches 1.1.11 exactly. */
+export const THEME_TOKENS: Record<HtmlTheme, Record<string, string>> = {
+  ember: {
+    '--bg': '#0f1419',
+    '--bg-deep': '#0b1014',
+    '--panel': '#162028',
+    '--border': '#2b3d4a',
+    '--text': '#e6edf3',
+    '--muted': '#8b9bab',
+    '--accent': '#3fb950',
+    '--cyan': '#79c0ff',
+    '--gold': '#d4a72c',
+    '--font': 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
+    '--mono': 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace'
+  },
+  fog: {
+    '--bg': '#e8eef4',
+    '--bg-deep': '#f7f9fc',
+    '--panel': '#dce4ee',
+    '--border': '#b4c0d0',
+    '--text': '#243044',
+    '--muted': '#6b7a8d',
+    '--accent': '#3d8a5a',
+    '--cyan': '#2a8a9a',
+    '--gold': '#a07a20',
+    '--font': 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
+    '--mono': 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace',
+    '--accent-border': '#b4d4be'
+  },
+  midnight: {
+    '--bg': '#0b0d14',
+    '--bg-deep': '#07080c',
+    '--panel': '#12141c',
+    '--border': '#2a3040',
+    '--text': '#d4dce8',
+    '--muted': '#6a7388',
+    '--accent': '#4ade80',
+    '--cyan': '#5eead4',
+    '--gold': '#fbbf24',
+    '--font': 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
+    '--mono': 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace',
+    '--accent-border': '#1a3a28'
+  },
+  paper: {
+    '--bg': '#f6f0e4',
+    '--bg-deep': '#fffaf0',
+    '--panel': '#efe6d4',
+    '--border': '#d4c4a8',
+    '--text': '#3a2f22',
+    '--muted': '#8a7a64',
+    '--accent': '#4a7a40',
+    '--cyan': '#2d7a7a',
+    '--gold': '#a07820',
+    '--font': 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
+    '--mono': 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace',
+    '--accent-border': '#c0d4b0'
+  }
+};
+
+function themeRootCss(htmlTheme: HtmlTheme): string {
+  const tokens = THEME_TOKENS[htmlTheme];
+  const lines = Object.entries(tokens).map(([key, value]) => `  ${key}: ${value};`);
+  return `:root {\n${lines.join('\n')}\n}`;
+}
+
+/** Remap leftover 1.1.11 hex literals so non-ember palettes stay readable. */
+const HTML_THEME_OVERRIDES = `
+.chip.accent { border-color: var(--accent-border); }
+`;
+
+const PAGE_CSS = `* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  background: var(--bg); color: var(--text);
+  font: 15px/1.55 var(--font);
+}
+body { padding: 28px 20px 56px; max-width: 920px; margin: 0 auto; }
+.top, .hero, .stats, .preview {
+  border: 1px solid var(--border); background: var(--panel);
+  padding: 18px 20px; margin-bottom: 16px;
+}
+.top h1 { margin: 0 0 8px; font-size: 15px; font-weight: 650; letter-spacing: 0.02em; }
+.top .meta { color: var(--muted); font-size: 12px; }
+.hero .kicker {
+  color: var(--muted); font-size: 11px; text-transform: uppercase;
+  letter-spacing: 0.1em; margin: 0 0 8px;
+}
+.hero .login {
+  font-size: 28px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15;
+  color: var(--cyan);
+}
+.hero .chips { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  padding: 2px 8px; border: 1px solid var(--border); font-size: 12px; color: var(--muted);
+}
+.chip.accent { color: var(--accent); border-color: #24582d; }
+.grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px; margin: 14px 0 0;
+}
+.stat {
+  border: 1px solid var(--border); background: var(--bg-deep);
+  padding: 10px 12px;
+}
+.stat .n { font-size: 20px; font-weight: 700; color: var(--gold); }
+.stat .l { color: var(--muted); font-size: 11px; margin-top: 4px; }
+h2 {
+  font-size: 11px; color: var(--muted); text-transform: uppercase;
+  letter-spacing: 0.1em; margin: 0 0 12px; font-weight: 650;
+}
+table.meta { width: 100%; border-collapse: collapse; }
+table.meta th, table.meta td { text-align: left; padding: 6px 0; vertical-align: top; }
+table.meta th { width: 34%; color: var(--muted); font-weight: 500; }
+table.meta td { color: var(--text); word-break: break-all; }
+.sections { margin: 12px 0 0; padding-left: 18px; color: var(--text); }
+.sections .empty { color: var(--muted); list-style: none; margin-left: -18px; }
+.marker {
+  display: inline-block; margin: 10px 0 6px; padding: 1px 8px;
+  border: 1px solid var(--border); color: var(--cyan);
+  font: 11px/1.4 var(--mono); letter-spacing: 0.06em;
+}
+.article h1, .article h2, .article h3 { color: var(--text); letter-spacing: 0; text-transform: none; }
+.article h1 { font-size: 26px; margin: 0 0 12px; }
+.article h2 { font-size: 18px; margin: 22px 0 10px; }
+.article h3 { font-size: 16px; margin: 16px 0 8px; }
+.article p { margin: 0 0 10px; }
+.article hr { border: 0; border-top: 1px solid var(--border); margin: 20px 0; }
+.article img { max-width: 160px; height: auto; border-radius: 50%; display: block; margin: 8px auto; }
+.article table { width: 100%; border-collapse: collapse; margin: 10px 0 16px; }
+.article th, .article td {
+  border: 1px solid var(--border); padding: 6px 8px; text-align: left;
+}
+.article th { color: var(--muted); font-weight: 600; }
+.article a { color: var(--cyan); }
+.article code { font-family: var(--mono); font-size: 13px; }
+.article div[align="center"] { text-align: center; }
+footer {
+  margin-top: 8px; color: var(--muted); font-size: 11px;
+  border-top: 1px solid var(--border); padding-top: 12px;
+}
+@media (max-width: 640px) {
+  .hero .login { font-size: 22px; }
+  table.meta th { width: 42%; }
+}`;
 
 type HtmlStrings = {
   title: string;
@@ -413,6 +583,8 @@ export function formatProfileHtml(
   options: HtmlFormatOptions = {}
 ): string {
   const locale = options.locale;
+  const htmlTheme = options.htmlTheme ?? DEFAULT_HTML_THEME;
+  const themeOverrides = htmlTheme === 'ember' ? '' : HTML_THEME_OVERRIDES;
   const s = stringsFor(locale);
   const actionLabel = input.action === 'refresh' ? s.actionRefresh : s.actionGenerate;
   const pageTitle = `${s.title} · ${input.action} · ${input.username}`;
@@ -439,93 +611,8 @@ export function formatProfileHtml(
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>${escapeHtml(pageTitle)}</title>
 <style>
-:root {
-  --bg: #0f1419;
-  --bg-deep: #0b1014;
-  --panel: #162028;
-  --border: #2b3d4a;
-  --text: #e6edf3;
-  --muted: #8b9bab;
-  --accent: #3fb950;
-  --cyan: #79c0ff;
-  --gold: #d4a72c;
-  --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-}
-* { box-sizing: border-box; }
-html, body {
-  margin: 0; padding: 0;
-  background: var(--bg); color: var(--text);
-  font: 15px/1.55 var(--font);
-}
-body { padding: 28px 20px 56px; max-width: 920px; margin: 0 auto; }
-.top, .hero, .stats, .preview {
-  border: 1px solid var(--border); background: var(--panel);
-  padding: 18px 20px; margin-bottom: 16px;
-}
-.top h1 { margin: 0 0 8px; font-size: 15px; font-weight: 650; letter-spacing: 0.02em; }
-.top .meta { color: var(--muted); font-size: 12px; }
-.hero .kicker {
-  color: var(--muted); font-size: 11px; text-transform: uppercase;
-  letter-spacing: 0.1em; margin: 0 0 8px;
-}
-.hero .login {
-  font-size: 28px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15;
-  color: var(--cyan);
-}
-.hero .chips { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
-.chip {
-  padding: 2px 8px; border: 1px solid var(--border); font-size: 12px; color: var(--muted);
-}
-.chip.accent { color: var(--accent); border-color: #24582d; }
-.grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 10px; margin: 14px 0 0;
-}
-.stat {
-  border: 1px solid var(--border); background: var(--bg-deep);
-  padding: 10px 12px;
-}
-.stat .n { font-size: 20px; font-weight: 700; color: var(--gold); }
-.stat .l { color: var(--muted); font-size: 11px; margin-top: 4px; }
-h2 {
-  font-size: 11px; color: var(--muted); text-transform: uppercase;
-  letter-spacing: 0.1em; margin: 0 0 12px; font-weight: 650;
-}
-table.meta { width: 100%; border-collapse: collapse; }
-table.meta th, table.meta td { text-align: left; padding: 6px 0; vertical-align: top; }
-table.meta th { width: 34%; color: var(--muted); font-weight: 500; }
-table.meta td { color: var(--text); word-break: break-all; }
-.sections { margin: 12px 0 0; padding-left: 18px; color: var(--text); }
-.sections .empty { color: var(--muted); list-style: none; margin-left: -18px; }
-.marker {
-  display: inline-block; margin: 10px 0 6px; padding: 1px 8px;
-  border: 1px solid var(--border); color: var(--cyan);
-  font: 11px/1.4 var(--mono); letter-spacing: 0.06em;
-}
-.article h1, .article h2, .article h3 { color: var(--text); letter-spacing: 0; text-transform: none; }
-.article h1 { font-size: 26px; margin: 0 0 12px; }
-.article h2 { font-size: 18px; margin: 22px 0 10px; }
-.article h3 { font-size: 16px; margin: 16px 0 8px; }
-.article p { margin: 0 0 10px; }
-.article hr { border: 0; border-top: 1px solid var(--border); margin: 20px 0; }
-.article img { max-width: 160px; height: auto; border-radius: 50%; display: block; margin: 8px auto; }
-.article table { width: 100%; border-collapse: collapse; margin: 10px 0 16px; }
-.article th, .article td {
-  border: 1px solid var(--border); padding: 6px 8px; text-align: left;
-}
-.article th { color: var(--muted); font-weight: 600; }
-.article a { color: var(--cyan); }
-.article code { font-family: var(--mono); font-size: 13px; }
-.article div[align="center"] { text-align: center; }
-footer {
-  margin-top: 8px; color: var(--muted); font-size: 11px;
-  border-top: 1px solid var(--border); padding-top: 12px;
-}
-@media (max-width: 640px) {
-  .hero .login { font-size: 22px; }
-  table.meta th { width: 42%; }
-}
+${themeRootCss(htmlTheme)}
+${PAGE_CSS}${themeOverrides}
 </style>
 </head>
 <body>
