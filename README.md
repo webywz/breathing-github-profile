@@ -20,7 +20,7 @@ Package: `@webywz/breathing-github-profile` · CLI binary: `breathing-profile` �
 | Stats | Stars, forks, repos, followers; language mix; featured repos | 统计、语言分布、精选仓库 |
 | Sections | `stats` · `languages` · `repos` · `custom` | 四种章节类型 |
 | Automation | Daily GitHub Actions workflow | Actions 每日定时刷新 |
-| HTML | `--html [path]` self-contained offline preview (no CDN) | `--html [path]` 自包含离线预览（无 CDN） |
+| HTML | `--html [path]` self-contained offline preview (no CDN); `--theme` restyles chrome only | `--html [path]` 自包含离线预览（无 CDN）；`--theme` 只改预览外壳配色 |
 | API | CLI commands + TypeScript library exports | CLI + 库 |
 
 Live example: [webywz/webywz](https://github.com/webywz/webywz).
@@ -114,10 +114,12 @@ npx breathing-profile generate -c config.yml -o README.md
 npx breathing-profile generate -c config.yml -o README.md --json  # machine-readable CI output
 npx breathing-profile generate -c config.yml -o README.md --html  # self-contained HTML preview on stdout
 npx breathing-profile generate -c config.yml -o README.md --html preview.html
+npx breathing-profile generate -c config.yml -o README.md --html --theme paper
 npx breathing-profile refresh  -c config.yml -r README.md
 npx breathing-profile refresh  -c config.yml -r README.md --json  # machine-readable CI output
 npx breathing-profile refresh  -c config.yml -r README.md --html
 npx breathing-profile refresh  -c config.yml -r README.md --html preview.html
+npx breathing-profile refresh  -c config.yml -r README.md --html --theme fog
 npx breathing-profile validate -c config.yml
 npx breathing-profile validate -c config.yml --json  # machine-readable CI output
 npx breathing-profile generate --no-color  # disable colored output
@@ -136,11 +138,13 @@ npx breathing-profile validate --locale zh # Chinese-only human messages
 | `generate` | Write a full README from config + GitHub data | 按配置与 GitHub 数据生成完整 README |
 | `generate --json` | Generate and output JSON (for CI) | 生成 README 并输出 JSON（供 CI 使用） |
 | `generate --html [path]` | Generate; write a self-contained HTML preview (stdout or file) | 生成 README，并写出自包含 HTML 预览（stdout 或文件） |
+| `generate --theme <name>` | HTML preview palette only (`ember` default, `fog`, `midnight`, `paper`) | 仅改 HTML 预览配色（默认 `ember`） |
 | `generate --quiet` | Generate; no spinner / success summary | 生成 README，不打印 spinner 与成功摘要 |
 | `generate --locale en\|zh` | Spinner / summary / errors in one language | spinner、摘要与错误只用一种语言 |
 | `refresh` | Rewrite marker sections only | 只刷新标记区 |
 | `refresh --json` | Refresh markers; output JSON (for CI) | 刷新标记区，输出 JSON（供 CI 使用） |
 | `refresh --html [path]` | Refresh; write a self-contained HTML preview (stdout or file) | 刷新标记区，并写出自包含 HTML 预览（stdout 或文件） |
+| `refresh --theme <name>` | HTML preview palette only (`ember` default, `fog`, `midnight`, `paper`) | 仅改 HTML 预览配色（默认 `ember`） |
 | `refresh --quiet` | Refresh; no spinner / success summary | 刷新标记区，不打印 spinner 与成功摘要 |
 | `refresh --locale en\|zh` | Spinner / summary / errors in one language | spinner、摘要与错误只用一种语言 |
 | `validate` | Check the config file | 校验配置 |
@@ -322,22 +326,27 @@ npx breathing-profile refresh --json -c config.yml -r README.md
 
 `--html` writes a self-contained offline HTML preview of the generated or refreshed README (inline CSS, no CDN, no external fonts or scripts). Open it via `file://`. The page shows a stats summary plus a rendered preview of the markdown that `generate` / `refresh` just wrote.
 
+`--theme <name>` restyles that preview chrome only (`ember` | `fog` | `midnight` | `paper`). Default `ember` is the 1.1.11 look. Omit the flag or pass `--theme ember` for the same CSS. This CLI flag is not config `style.theme` (`light` | `dark` | `auto`).
+
 `--html` 写出一份自包含离线 HTML 预览（内联 CSS，无 CDN、无外部字体或脚本），可用 `file://` 打开。页面包含统计摘要，以及刚刚 `generate` / `refresh` 写出的 README 渲染预览。
+
+`--theme <name>` 只改这份预览外壳的配色（`ember` | `fog` | `midnight` | `paper`）。默认 `ember` 即 1.1.11 外观。省略或传入 `--theme ember` 得到相同 CSS。该 CLI 旗标不是配置里的 `style.theme`（`light` | `dark` | `auto`）。
 
 | Form · 写法 | Result · 结果 |
 | --- | --- |
 | `--html` | Print HTML to stdout · 打印到标准输出 |
 | `--html preview.html` | Write HTML to that file (parent dirs created) · 写入指定文件（自动创建父目录） |
 
-README output (`-o` / `-r`) and `data/profile.json` are unchanged. `--quiet` still hides the spinner and human success lines. `--locale` localizes preview labels (and human messages); omit `--locale` for bilingual chrome. `--no-color` still applies to terminal lines. `--html` and `--json` cannot be used together.
+README output (`-o` / `-r`) and `data/profile.json` are unchanged. `--quiet` still hides the spinner and human success lines. `--locale` localizes preview labels (and human messages); omit `--locale` for bilingual chrome. `--no-color` still applies to terminal lines. `--html` and `--json` cannot be used together. Invalid or missing `--theme` is a usage error that lists the allowed palettes.
 
-README 输出（`-o` / `-r`）与 `data/profile.json` 行为不变。`--quiet` 仍隐藏 spinner 与人类成功摘要。`--locale` 本地化预览标签（以及人类消息）；省略则中英双语。`--no-color` 仍作用于终端行。`--html` 与 `--json` 不能同时使用。
+README 输出（`-o` / `-r`）与 `data/profile.json` 行为不变。`--quiet` 仍隐藏 spinner 与人类成功摘要。`--locale` 本地化预览标签（以及人类消息）；省略则中英双语。`--no-color` 仍作用于终端行。`--html` 与 `--json` 不能同时使用。无效或缺失的 `--theme` 会以用法错误退出，并列出可用配色。
 
 ```bash
 npx breathing-profile generate -c config.yml -o README.md --html
 npx breathing-profile generate -c config.yml -o README.md --html out/preview.html
+npx breathing-profile generate -c config.yml -o README.md --html --theme midnight
 npx breathing-profile refresh  -c config.yml -r README.md --html --quiet
-npx breathing-profile generate -c config.yml -o README.md --html --locale zh
+npx breathing-profile generate -c config.yml -o README.md --html --locale zh --theme paper
 ```
 
 **Conflict (exit 1) / 冲突（退出码 1）：**
@@ -368,13 +377,13 @@ Optional: set `GITHUB_TOKEN` or `GH_TOKEN` (or use `secrets.GITHUB_TOKEN` in Act
 | Field | Type | Default | Notes |
 | --- | --- | --- | --- |
 | `icons` | boolean | `true` | When `false`, omit emoji from headings, stats table, and repo cards · `false` 时去掉标题/统计表/仓库卡片中的 emoji |
-| `theme` | `'light' \| 'dark' \| 'auto'` | `auto` | **Reserved** — pure Markdown profiles ignore theme; kept for forward compatibility · **预留字段**，纯 Markdown 主页不生效 |
+| `theme` | `'light' \| 'dark' \| 'auto'` | `auto` | **Reserved** — not the CLI `--theme` HTML palette; Markdown output ignores this field · **预留字段**，不是 CLI `--theme` HTML 配色；Markdown 输出不读取 |
 | `badges` | boolean | `true` | **Reserved** — not applied by the generator yet · **预留字段**，生成器暂未读取 |
 
 ```yaml
 style:
   icons: true   # set false for emoji-free output
-  theme: auto   # reserved
+  theme: auto   # reserved (not CLI --theme)
   badges: true  # reserved
 ```
 
@@ -450,7 +459,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: npm i @webywz/breathing-github-profile@1.1.11
+      - run: npm i @webywz/breathing-github-profile@1.1.12
       - name: Refresh README
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

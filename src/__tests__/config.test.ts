@@ -116,6 +116,18 @@ describe('Config Validation', () => {
     
     expect(defaults.sections).toBeDefined();
     expect(defaults.style).toBeDefined();
+    expect(defaults.style?.theme).toBe('auto');
     expect(defaults.sections?.length).toBeGreaterThan(0);
+  });
+
+  it('保留 style.theme 为 light|dark|auto，且不与 HTML 配色混用', () => {
+    for (const theme of ['light', 'dark', 'auto'] as const) {
+      const config: ProfileConfig = {
+        username: 'test',
+        intro: { zh: '你好' },
+        style: { theme }
+      };
+      expect(() => validateConfig(config)).not.toThrow();
+    }
   });
 });

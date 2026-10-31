@@ -188,6 +188,20 @@ intro:
       expect(existsSync(htmlPath)).toBe(true);
       expect(hasAnsiCodes(readFileSync(htmlPath, 'utf-8'))).toBe(false);
     });
+
+    it('--html --theme fog --no-color 的 HTML 与终端行都没有 ANSI', () => {
+      const outputPath = join(testDir, 'README.md');
+      const htmlPath = join(testDir, 'fog.html');
+      const result = runCommand(
+        'generate',
+        `-c ${testConfigPath} -o ${outputPath} --html ${htmlPath} --theme fog --no-color`
+      );
+
+      expect(result.exitCode).toBe(0);
+      expect(hasAnsiCodes(result.stdout + result.stderr)).toBe(false);
+      expect(readFileSync(htmlPath, 'utf-8')).toContain('--bg: #e8eef4;');
+      expect(hasAnsiCodes(readFileSync(htmlPath, 'utf-8'))).toBe(false);
+    });
   });
 
   describe('refresh command', () => {

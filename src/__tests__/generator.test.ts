@@ -168,6 +168,20 @@ describe('ReadmeGenerator', () => {
     expect(statsBlock).toContain('## 📊 GitHub 统计');
   });
 
+  it('style.theme 不改变 Markdown 输出', () => {
+    const base: ProfileConfig = {
+      username: 'testuser',
+      intro: { zh: '你好', en: 'Hello' },
+      sections: [{ type: 'stats', marker: 'STATS' }]
+    };
+    const none = new ReadmeGenerator(base, mockData).generate();
+    const dark = new ReadmeGenerator(
+      { ...base, style: { theme: 'dark' } },
+      mockData
+    ).generate();
+    expect(dark).toBe(none);
+  });
+
   it('icons:false 时去掉统计表与默认标题中的 emoji', () => {
     const config: ProfileConfig = {
       username: 'testuser',

@@ -4,10 +4,15 @@ export { GitHubClient, resolveGithubToken } from './github';
 export { ReadmeGenerator, updateReadmeMarkers } from './generator';
 export { readPackageVersion } from './version';
 export {
+  DEFAULT_HTML_THEME,
+  HTML_THEMES,
   escapeHtml,
   formatProfileHtml,
+  isHtmlTheme,
+  parseHtmlTheme,
   profileHtmlInputFrom,
   renderReadmePreview,
   resolveHtmlTarget,
   writeHtmlPreview
 } from './html';
+export type { HtmlTheme } from './html';

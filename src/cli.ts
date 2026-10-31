@@ -9,8 +9,11 @@ import { loadConfig } from './config';
 import { GitHubClient } from './github';
 import { ReadmeGenerator, updateReadmeMarkers } from './generator';
 import {
+  DEFAULT_HTML_THEME,
+  HtmlTheme,
   formatProfileHtml,
   htmlWrittenLine,
+  parseHtmlTheme,
   profileHtmlInputFrom,
   resolveHtmlTarget,
   writeHtmlPreview
@@ -109,6 +112,24 @@ function htmlOption(): Option {
   );
 }
 
+function htmlThemeOption(): Option {
+  return new Option(
+    '--theme <name>',
+    `HTML preview palette: ember (default), fog, midnight, paper (--html only; not config theme) · HTML 预览配色：ember（默认）、fog、midnight、paper（仅 --html；与配置 theme 无关）`
+  ).argParser((value: string) => {
+    try {
+      return parseHtmlTheme(value);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new InvalidArgumentError(message);
+    }
+  });
+}
+
+function getHtmlTheme(options: { theme?: HtmlTheme }): HtmlTheme {
+  return options.theme ?? program.opts().theme ?? DEFAULT_HTML_THEME;
+}
+
 function rejectHtmlJsonConflict(
   options: { html?: unknown; json?: boolean },
   locale: Locale | undefined
@@ -151,7 +172,8 @@ program
   .version(readPackageVersion())
   .option('-q, --quiet', 'Suppress spinner and success summary · 静默 spinner 与成功摘要')
   .option('--no-color', 'Disable colored output · 禁用彩色输出')
-  .addOption(localeOption());
+  .addOption(localeOption())
+  .addOption(htmlThemeOption());
 
 program
   .command('generate')
@@ -160,6 +182,7 @@ program
   .option('-o, --output <path>', 'Output path · 输出文件路径', 'README.md')
   .option('-j, --json', 'Output JSON only · 仅输出 JSON')
   .addOption(htmlOption())
+  .addOption(htmlThemeOption())
   .option('-q, --quiet', 'Suppress spinner and success summary · 静默 spinner 与成功摘要')
   .option('--no-color', 'Disable colored output · 禁用彩色输出')
   .addOption(localeOption())
@@ -170,6 +193,7 @@ program
       applyNoColor();
     }
     const htmlTarget = resolveHtmlTarget(options.html);
+    const htmlTheme = getHtmlTheme(options);
     rejectHtmlJsonConflict(options, locale);
     const { spinner, spinnerEnabled } = createSpinner(
       cliText(locale, {
@@ -239,7 +263,7 @@ program
               outputPath: options.output,
               configPath: options.config
             }),
-            { locale }
+            { locale, htmlTheme }
           ),
           htmlTarget.path
         );
@@ -308,6 +332,7 @@ program
   .option('-r, --readme <path>', 'README path · README 文件路径', 'README.md')
   .option('-j, --json', 'Output JSON only · 仅输出 JSON')
   .addOption(htmlOption())
+  .addOption(htmlThemeOption())
   .option('-q, --quiet', 'Suppress spinner and success summary · 静默 spinner 与成功摘要')
   .option('--no-color', 'Disable colored output · 禁用彩色输出')
   .addOption(localeOption())
@@ -318,6 +343,7 @@ program
       applyNoColor();
     }
     const htmlTarget = resolveHtmlTarget(options.html);
+    const htmlTheme = getHtmlTheme(options);
     rejectHtmlJsonConflict(options, locale);
     const { spinner, spinnerEnabled } = createSpinner(
       cliText(locale, {
@@ -415,7 +441,7 @@ program
               outputPath: options.readme,
               configPath: options.config
             }),
-            { locale }
+            { locale, htmlTheme }
           ),
           htmlTarget.path
         );

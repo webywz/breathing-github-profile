@@ -135,6 +135,19 @@ describe('--locale flag', () => {
       expect(generate.stdout).toMatch(/HTML/);
       expect(refresh.stdout).toMatch(/HTML/);
     });
+
+    it('generate / refresh help lists --theme HTML palettes', () => {
+      const generate = runCli(['generate', '--help'], testDir);
+      const refresh = runCli(['refresh', '--help'], testDir);
+      expectExit(generate, 0);
+      expectExit(refresh, 0);
+      expect(generate.stdout).toMatch(/--theme <name>/);
+      expect(refresh.stdout).toMatch(/--theme <name>/);
+      expect(generate.stdout).toMatch(/ember/);
+      expect(generate.stdout).toMatch(/fog/);
+      expect(generate.stdout).toMatch(/midnight/);
+      expect(generate.stdout).toMatch(/paper/);
+    });
   });
 
   describe('init', () => {
