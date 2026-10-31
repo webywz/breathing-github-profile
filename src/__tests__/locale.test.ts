@@ -1,8 +1,9 @@
-import { existsSync, writeFileSync, mkdtempSync, rmSync } from 'fs';
+import { existsSync, writeFileSync, readFileSync, mkdtempSync, rmSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import {
   BilingualError,
+  HTML_JSON_CONFLICT,
   UsageError,
   cliText,
   errorText,
@@ -67,6 +68,17 @@ describe('parseLocale / cliText', () => {
     expect(omitted).toContain('Run: breathing-profile generate');
   });
 
+  it('HTML_JSON_CONFLICT follows cliText locale rules', () => {
+    expect(cliText(undefined, HTML_JSON_CONFLICT)).toContain('cannot be used together');
+    expect(cliText(undefined, HTML_JSON_CONFLICT)).toContain('不能同时使用');
+    expect(cliText('en', HTML_JSON_CONFLICT)).toBe(
+      'error: --html and --json cannot be used together'
+    );
+    expect(cliText('zh', HTML_JSON_CONFLICT)).toBe(
+      'error: --html 与 --json 不能同时使用'
+    );
+  });
+
   it('en/zh pick a single language', () => {
     const parts = {
       both: 'Config valid / 配置文件有效',
@@ -111,6 +123,17 @@ describe('--locale flag', () => {
       expectExit(result, 0);
       expect(result.stdout).toMatch(/--locale/);
       expect(result.stdout).toMatch(/en\|zh/);
+    });
+
+    it('generate / refresh help lists --html [path]', () => {
+      const generate = runCli(['generate', '--help'], testDir);
+      const refresh = runCli(['refresh', '--help'], testDir);
+      expectExit(generate, 0);
+      expectExit(refresh, 0);
+      expect(generate.stdout).toMatch(/--html \[path\]/);
+      expect(refresh.stdout).toMatch(/--html \[path\]/);
+      expect(generate.stdout).toMatch(/HTML/);
+      expect(refresh.stdout).toMatch(/HTML/);
     });
   });
 
@@ -405,6 +428,51 @@ intro:
       expect(zhJson.ok).toBe(true);
       expect(zh.stdout).not.toContain('已生成');
       rmSync(zhDir, { recursive: true, force: true });
+    });
+
+    it('generate --html --json is a usage error in the requested locale', () => {
+      const zh = runCli(
+        ['generate', '--html', '--json', '--locale', 'zh', '-c', testConfigPath, '-o', 'README.md'],
+        testDir
+      );
+      const en = runCli(
+        ['generate', '--html', '--json', '--locale', 'en', '-c', testConfigPath, '-o', 'README.md'],
+        testDir
+      );
+      expect(zh.exitCode).toBe(1);
+      expect(en.exitCode).toBe(1);
+      expect(zh.stderr).toContain('--html 与 --json 不能同时使用');
+      expect(zh.stderr).not.toContain('cannot be used together');
+      expect(en.stderr).toContain('--html and --json cannot be used together');
+      expect(en.stderr).not.toContain('不能同时使用');
+    });
+
+    it('generate --html --locale zh localizes preview chrome', () => {
+      const result = runCli(
+        ['generate', '--html', '--locale', 'zh', '-c', testConfigPath, '-o', join(testDir, 'README.md')],
+        testDir
+      );
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toMatch(/<!DOCTYPE html>/i);
+      expect(result.stdout).toContain('离线主页预览');
+      expect(result.stdout).toContain('生成');
+      expect(result.stdout).not.toContain('Offline profile preview');
+      expect(result.stdout).not.toContain('README written');
+    });
+
+    it('generate --html path --locale en keeps English human lines', () => {
+      const htmlPath = join(testDir, 'preview-en.html');
+      const result = runCli(
+        ['generate', '--html', htmlPath, '--locale', 'en', '-c', testConfigPath, '-o', join(testDir, 'README.md')],
+        testDir
+      );
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain('README written');
+      expect(result.stdout).toContain('HTML preview');
+      expect(result.stdout).not.toContain('已生成');
+      expect(result.stdout).not.toContain('HTML 预览');
+      expect(readFileSync(htmlPath, 'utf-8')).toContain('Offline profile preview');
+      expect(readFileSync(htmlPath, 'utf-8')).not.toContain('离线主页预览');
     });
 
     it('refresh --locale zh is Chinese only', () => {
