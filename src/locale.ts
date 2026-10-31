@@ -80,3 +80,10 @@ export function errorText(error: unknown, locale?: Locale): string {
   }
   return error instanceof Error ? error.message : String(error);
 }
+
+/** Usage error when `--html` and `--json` are passed together. */
+export const HTML_JSON_CONFLICT = {
+  both: 'error: --html and --json cannot be used together / --html 与 --json 不能同时使用',
+  en: 'error: --html and --json cannot be used together',
+  zh: 'error: --html 与 --json 不能同时使用'
+};

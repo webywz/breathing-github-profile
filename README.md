@@ -20,6 +20,7 @@ Package: `@webywz/breathing-github-profile` · CLI binary: `breathing-profile` �
 | Stats | Stars, forks, repos, followers; language mix; featured repos | 统计、语言分布、精选仓库 |
 | Sections | `stats` · `languages` · `repos` · `custom` | 四种章节类型 |
 | Automation | Daily GitHub Actions workflow | Actions 每日定时刷新 |
+| HTML | `--html [path]` self-contained offline preview (no CDN) | `--html [path]` 自包含离线预览（无 CDN） |
 | API | CLI commands + TypeScript library exports | CLI + 库 |
 
 Live example: [webywz/webywz](https://github.com/webywz/webywz).
@@ -111,8 +112,12 @@ Then edit `config.yml` to replace `octocat` with your GitHub username.
 ```bash
 npx breathing-profile generate -c config.yml -o README.md
 npx breathing-profile generate -c config.yml -o README.md --json  # machine-readable CI output
+npx breathing-profile generate -c config.yml -o README.md --html  # self-contained HTML preview on stdout
+npx breathing-profile generate -c config.yml -o README.md --html preview.html
 npx breathing-profile refresh  -c config.yml -r README.md
 npx breathing-profile refresh  -c config.yml -r README.md --json  # machine-readable CI output
+npx breathing-profile refresh  -c config.yml -r README.md --html
+npx breathing-profile refresh  -c config.yml -r README.md --html preview.html
 npx breathing-profile validate -c config.yml
 npx breathing-profile validate -c config.yml --json  # machine-readable CI output
 npx breathing-profile generate --no-color  # disable colored output
@@ -130,10 +135,12 @@ npx breathing-profile validate --locale zh # Chinese-only human messages
 | `init --locale en\|zh` | Human messages in one language (omit = bilingual) | 人类可读消息只用一种语言（省略则中英双语） |
 | `generate` | Write a full README from config + GitHub data | 按配置与 GitHub 数据生成完整 README |
 | `generate --json` | Generate and output JSON (for CI) | 生成 README 并输出 JSON（供 CI 使用） |
+| `generate --html [path]` | Generate; write a self-contained HTML preview (stdout or file) | 生成 README，并写出自包含 HTML 预览（stdout 或文件） |
 | `generate --quiet` | Generate; no spinner / success summary | 生成 README，不打印 spinner 与成功摘要 |
 | `generate --locale en\|zh` | Spinner / summary / errors in one language | spinner、摘要与错误只用一种语言 |
 | `refresh` | Rewrite marker sections only | 只刷新标记区 |
 | `refresh --json` | Refresh markers; output JSON (for CI) | 刷新标记区，输出 JSON（供 CI 使用） |
+| `refresh --html [path]` | Refresh; write a self-contained HTML preview (stdout or file) | 刷新标记区，并写出自包含 HTML 预览（stdout 或文件） |
 | `refresh --quiet` | Refresh; no spinner / success summary | 刷新标记区，不打印 spinner 与成功摘要 |
 | `refresh --locale en\|zh` | Spinner / summary / errors in one language | spinner、摘要与错误只用一种语言 |
 | `validate` | Check the config file | 校验配置 |
@@ -149,11 +156,12 @@ By default, the CLI uses colored output (via ANSI escape codes). To disable:
 - Add `--no-color` flag to any command · 在任何命令后添加 `--no-color` 标志
 - Or set `NO_COLOR=1` environment variable · 或设置 `NO_COLOR=1` 环境变量
 - `--json` mode always outputs plain JSON without colors · `--json` 模式始终输出无颜色的纯 JSON
+- `--html` chrome is uncolored HTML; `--no-color` still applies to any human terminal lines · `--html` 页面本身无 ANSI；`--no-color` 仍作用于终端人类可读行
 
 **Quiet output · 静默输出**
 
-`--quiet` (or `-q`) suppresses the spinner and human success summary lines. Errors still go to stderr with a non-zero exit. Combined with `--json`, JSON stdout is unchanged.  
-`--quiet`（或 `-q`）会隐藏 spinner 与人类可读的成功摘要。错误仍写入 stderr 并以非零退出。与 `--json` 同时使用时，stdout 仍为 JSON。
+`--quiet` (or `-q`) suppresses the spinner and human success summary lines. Errors still go to stderr with a non-zero exit. Combined with `--json`, JSON stdout is unchanged. Combined with `--html`, the HTML preview still writes to stdout or the given file.  
+`--quiet`（或 `-q`）会隐藏 spinner 与人类可读的成功摘要。错误仍写入 stderr 并以非零退出。与 `--json` 同时使用时，stdout 仍为 JSON。与 `--html` 同时使用时，HTML 预览仍写入 stdout 或指定文件。
 
 ```bash
 npx breathing-profile generate --quiet -c config.yml -o README.md
@@ -310,6 +318,34 @@ npx breathing-profile refresh --json -c config.yml -r README.md
 > **Note:** `--json` mode still writes updated README to `--readme` and saves `data/profile.json`.  
 > **注意：** `--json` 模式下仍然会写入更新后的 README 到 `--readme` 并保存 `data/profile.json`。
 
+#### Generate / refresh with `--html` · 使用 `--html` 预览
+
+`--html` writes a self-contained offline HTML preview of the generated or refreshed README (inline CSS, no CDN, no external fonts or scripts). Open it via `file://`. The page shows a stats summary plus a rendered preview of the markdown that `generate` / `refresh` just wrote.
+
+`--html` 写出一份自包含离线 HTML 预览（内联 CSS，无 CDN、无外部字体或脚本），可用 `file://` 打开。页面包含统计摘要，以及刚刚 `generate` / `refresh` 写出的 README 渲染预览。
+
+| Form · 写法 | Result · 结果 |
+| --- | --- |
+| `--html` | Print HTML to stdout · 打印到标准输出 |
+| `--html preview.html` | Write HTML to that file (parent dirs created) · 写入指定文件（自动创建父目录） |
+
+README output (`-o` / `-r`) and `data/profile.json` are unchanged. `--quiet` still hides the spinner and human success lines. `--locale` localizes preview labels (and human messages); omit `--locale` for bilingual chrome. `--no-color` still applies to terminal lines. `--html` and `--json` cannot be used together.
+
+README 输出（`-o` / `-r`）与 `data/profile.json` 行为不变。`--quiet` 仍隐藏 spinner 与人类成功摘要。`--locale` 本地化预览标签（以及人类消息）；省略则中英双语。`--no-color` 仍作用于终端行。`--html` 与 `--json` 不能同时使用。
+
+```bash
+npx breathing-profile generate -c config.yml -o README.md --html
+npx breathing-profile generate -c config.yml -o README.md --html out/preview.html
+npx breathing-profile refresh  -c config.yml -r README.md --html --quiet
+npx breathing-profile generate -c config.yml -o README.md --html --locale zh
+```
+
+**Conflict (exit 1) / 冲突（退出码 1）：**
+
+```text
+error: --html and --json cannot be used together / --html 与 --json 不能同时使用
+```
+
 Optional: set `GITHUB_TOKEN` or `GH_TOKEN` (or use `secrets.GITHUB_TOKEN` in Actions) for higher API rate limits.
 
 ---
@@ -414,7 +450,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: npm i @webywz/breathing-github-profile@1.1.10
+      - run: npm i @webywz/breathing-github-profile@1.1.11
       - name: Refresh README
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

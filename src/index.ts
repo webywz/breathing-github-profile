@@ -3,3 +3,11 @@ export { loadConfig, validateConfig, getDefaultConfig } from './config';
 export { GitHubClient, resolveGithubToken } from './github';
 export { ReadmeGenerator, updateReadmeMarkers } from './generator';
 export { readPackageVersion } from './version';
+export {
+  escapeHtml,
+  formatProfileHtml,
+  profileHtmlInputFrom,
+  renderReadmePreview,
+  resolveHtmlTarget,
+  writeHtmlPreview
+} from './html';

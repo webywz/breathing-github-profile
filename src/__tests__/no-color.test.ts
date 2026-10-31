@@ -1,4 +1,4 @@
-import { existsSync, writeFileSync, mkdtempSync, rmSync } from 'fs';
+import { existsSync, writeFileSync, readFileSync, mkdtempSync, rmSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { runCli } from './run-cli';
@@ -173,6 +173,21 @@ intro:
       const parsed = JSON.parse(result.stdout);
       expect(parsed.ok).toBe(true);
     });
+
+    it('--html --no-color 的 HTML 与终端行都没有 ANSI', () => {
+      const outputPath = join(testDir, 'README.md');
+      const htmlPath = join(testDir, 'preview.html');
+      const result = runCommand(
+        'generate',
+        `-c ${testConfigPath} -o ${outputPath} --html ${htmlPath} --no-color`
+      );
+
+      expect(result.exitCode).toBe(0);
+      expect(hasAnsiCodes(result.stdout + result.stderr)).toBe(false);
+      expect(result.stdout).toContain('Data saved');
+      expect(existsSync(htmlPath)).toBe(true);
+      expect(hasAnsiCodes(readFileSync(htmlPath, 'utf-8'))).toBe(false);
+    });
   });
 
   describe('refresh command', () => {
@@ -233,6 +248,17 @@ old content
       );
 
       expect(result.exitCode).toBe(0);
+      expect(hasAnsiCodes(result.stdout + result.stderr)).toBe(false);
+    });
+
+    it('--html --no-color 的 HTML stdout 没有 ANSI', () => {
+      const result = runCommand(
+        'refresh',
+        `-c ${testConfigPath} -r ${readmePath} --html --no-color`
+      );
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toMatch(/<!DOCTYPE html>/i);
       expect(hasAnsiCodes(result.stdout + result.stderr)).toBe(false);
     });
   });

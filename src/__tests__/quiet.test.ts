@@ -176,6 +176,30 @@ describe('--quiet flag', () => {
       expect(result.stderr).toMatch(/not found|不存在|Error/);
       expect(result.stdout.trim()).toBe('');
     });
+
+    it('--html --quiet 仍输出 HTML 到 stdout，无成功摘要', () => {
+      const result = runCli(
+        ['generate', '--html', '--quiet', '-c', testConfigPath, '-o', join(testDir, 'README.md')],
+        testDir
+      );
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toMatch(/<!DOCTYPE html>/i);
+      expectNoHumanSuccess(result.stdout + result.stderr);
+      expect(existsSync(join(testDir, 'README.md'))).toBe(true);
+    });
+
+    it('--html path --quiet 写入文件且 stdout 为空', () => {
+      const htmlPath = join(testDir, 'quiet.html');
+      const result = runCli(
+        ['generate', '--html', htmlPath, '--quiet', '-c', testConfigPath, '-o', join(testDir, 'README.md')],
+        testDir
+      );
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout.trim()).toBe('');
+      expectNoHumanSuccess(result.stdout + result.stderr);
+      expect(existsSync(htmlPath)).toBe(true);
+      expect(readFileSync(htmlPath, 'utf-8')).toMatch(/<!DOCTYPE html>/i);
+    });
   });
 
   describe('refresh', () => {
@@ -240,6 +264,16 @@ sections:
       );
       expect(result.exitCode).toBe(1);
       expect(result.stderr).toMatch(/not found|不存在|Error/);
+    });
+
+    it('--html --quiet 仍输出 HTML 到 stdout，无成功摘要', () => {
+      const result = runCli(
+        ['refresh', '--html', '--quiet', '-c', testConfigPath, '-r', readmePath],
+        testDir
+      );
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toMatch(/<!DOCTYPE html>/i);
+      expectNoHumanSuccess(result.stdout + result.stderr);
     });
   });
 });

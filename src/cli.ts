@@ -8,9 +8,17 @@ import { join } from 'path';
 import { loadConfig } from './config';
 import { GitHubClient } from './github';
 import { ReadmeGenerator, updateReadmeMarkers } from './generator';
+import {
+  formatProfileHtml,
+  htmlWrittenLine,
+  profileHtmlInputFrom,
+  resolveHtmlTarget,
+  writeHtmlPreview
+} from './html';
 import { readPackageVersion } from './version';
 import {
   BilingualError,
+  HTML_JSON_CONFLICT,
   Locale,
   cliText,
   errorText,
@@ -40,9 +48,9 @@ function applyNoColor(): void {
 
 function createSpinner(
   text: string,
-  options: { json?: boolean; quiet?: boolean; colorDisabled?: boolean }
+  options: { json?: boolean; quiet?: boolean; htmlOnStdout?: boolean; colorDisabled?: boolean }
 ): { spinner: Ora | null; spinnerEnabled: boolean } {
-  if (options.json || options.quiet) {
+  if (options.json || options.quiet || options.htmlOnStdout) {
     return { spinner: null, spinnerEnabled: false };
   }
 
@@ -86,8 +94,29 @@ function isQuiet(options: { quiet?: boolean }): boolean {
   return Boolean(options.quiet || program.opts().quiet);
 }
 
-function shouldPrintHuman(options: { json?: boolean; quiet?: boolean }): boolean {
-  return !options.json && !isQuiet(options);
+function shouldPrintHuman(options: {
+  json?: boolean;
+  quiet?: boolean;
+  htmlOnStdout?: boolean;
+}): boolean {
+  return !options.json && !options.htmlOnStdout && !isQuiet(options);
+}
+
+function htmlOption(): Option {
+  return new Option(
+    '--html [path]',
+    'Self-contained HTML preview (stdout or file; offline, no CDN) · 自包含 HTML 预览（stdout 或文件；离线、无 CDN）'
+  );
+}
+
+function rejectHtmlJsonConflict(
+  options: { html?: unknown; json?: boolean },
+  locale: Locale | undefined
+): void {
+  if (resolveHtmlTarget(options.html).enabled && options.json) {
+    console.error(chalk.red(cliText(locale, HTML_JSON_CONFLICT)));
+    process.exit(1);
+  }
 }
 
 function localeOption(): Option {
@@ -130,6 +159,7 @@ program
   .option('-c, --config <path>', 'Config path · 配置文件路径', 'config.yml')
   .option('-o, --output <path>', 'Output path · 输出文件路径', 'README.md')
   .option('-j, --json', 'Output JSON only · 仅输出 JSON')
+  .addOption(htmlOption())
   .option('-q, --quiet', 'Suppress spinner and success summary · 静默 spinner 与成功摘要')
   .option('--no-color', 'Disable colored output · 禁用彩色输出')
   .addOption(localeOption())
@@ -139,6 +169,8 @@ program
     if (colorDisabled) {
       applyNoColor();
     }
+    const htmlTarget = resolveHtmlTarget(options.html);
+    rejectHtmlJsonConflict(options, locale);
     const { spinner, spinnerEnabled } = createSpinner(
       cliText(locale, {
         both: 'Generating README… · 正在生成 README...',
@@ -148,6 +180,7 @@ program
       {
         json: options.json,
         quiet: isQuiet(options),
+        htmlOnStdout: htmlTarget.onStdout,
         colorDisabled
       }
     );
@@ -195,6 +228,23 @@ program
         'utf-8'
       );
 
+      if (htmlTarget.enabled) {
+        writeHtmlPreview(
+          formatProfileHtml(
+            profileHtmlInputFrom({
+              action: 'generate',
+              config,
+              data,
+              markdown: readme,
+              outputPath: options.output,
+              configPath: options.config
+            }),
+            { locale }
+          ),
+          htmlTarget.path
+        );
+      }
+
       if (options.json) {
         const bytes = Buffer.byteLength(readme, 'utf-8');
         const sections = config.sections?.length || 0;
@@ -206,7 +256,7 @@ program
           bytes,
           sections
         }, null, 2));
-      } else if (shouldPrintHuman(options)) {
+      } else if (shouldPrintHuman({ ...options, htmlOnStdout: htmlTarget.onStdout })) {
         spinnerSucceed(
           spinner,
           spinnerEnabled,
@@ -221,6 +271,9 @@ program
           en: `  Data saved: ${dataPath}`,
           zh: `  数据已保存: ${dataPath}`
         })));
+        if (htmlTarget.path) {
+          console.log(chalk.gray(htmlWrittenLine(locale, htmlTarget.path)));
+        }
       }
     } catch (error) {
       if (options.json) {
@@ -254,6 +307,7 @@ program
   .option('-c, --config <path>', 'Config path · 配置文件路径', 'config.yml')
   .option('-r, --readme <path>', 'README path · README 文件路径', 'README.md')
   .option('-j, --json', 'Output JSON only · 仅输出 JSON')
+  .addOption(htmlOption())
   .option('-q, --quiet', 'Suppress spinner and success summary · 静默 spinner 与成功摘要')
   .option('--no-color', 'Disable colored output · 禁用彩色输出')
   .addOption(localeOption())
@@ -263,6 +317,8 @@ program
     if (colorDisabled) {
       applyNoColor();
     }
+    const htmlTarget = resolveHtmlTarget(options.html);
+    rejectHtmlJsonConflict(options, locale);
     const { spinner, spinnerEnabled } = createSpinner(
       cliText(locale, {
         both: 'Refreshing README… · 正在刷新 README...',
@@ -272,6 +328,7 @@ program
       {
         json: options.json,
         quiet: isQuiet(options),
+        htmlOnStdout: htmlTarget.onStdout,
         colorDisabled
       }
     );
@@ -347,13 +404,30 @@ program
         'utf-8'
       );
 
+      if (htmlTarget.enabled) {
+        writeHtmlPreview(
+          formatProfileHtml(
+            profileHtmlInputFrom({
+              action: 'refresh',
+              config,
+              data,
+              markdown: updatedReadme,
+              outputPath: options.readme,
+              configPath: options.config
+            }),
+            { locale }
+          ),
+          htmlTarget.path
+        );
+      }
+
       if (options.json) {
         console.log(JSON.stringify({
           ok: true,
           action: 'refreshed',
           path: options.readme
         }, null, 2));
-      } else if (shouldPrintHuman(options)) {
+      } else if (shouldPrintHuman({ ...options, htmlOnStdout: htmlTarget.onStdout })) {
         spinnerSucceed(
           spinner,
           spinnerEnabled,
@@ -368,6 +442,9 @@ program
           en: `  Data saved: ${join(dataDir, 'profile.json')}`,
           zh: `  数据已保存: ${join(dataDir, 'profile.json')}`
         })));
+        if (htmlTarget.path) {
+          console.log(chalk.gray(htmlWrittenLine(locale, htmlTarget.path)));
+        }
       }
     } catch (error) {
       if (options.json) {
