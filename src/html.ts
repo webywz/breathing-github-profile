@@ -9,7 +9,7 @@ import { readPackageVersion } from './version';
  * Distinct from reserved config `style.theme` (`light` | `dark` | `auto`).
  * `ember` is the 1.1.11 default look.
  */
-export const HTML_THEMES = ['ember', 'fog', 'midnight', 'paper'] as const;
+export const HTML_THEMES = ['ember', 'fog', 'midnight', 'paper', 'aurora'] as const;
 export type HtmlTheme = (typeof HTML_THEMES)[number];
 export const DEFAULT_HTML_THEME: HtmlTheme = 'ember';
 
@@ -115,6 +115,21 @@ export const THEME_TOKENS: Record<HtmlTheme, Record<string, string>> = {
     '--font': 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
     '--mono': 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace',
     '--accent-border': '#c0d4b0'
+  },
+  // polar-night / northern-lights; aligned with contrib-aquarium aurora
+  aurora: {
+    '--bg': '#0b2744',
+    '--bg-deep': '#030d18',
+    '--panel': '#071a30',
+    '--border': '#2a3c4c',
+    '--text': '#e4fff6',
+    '--muted': '#8ad0c4',
+    '--accent': '#3ee8c8',
+    '--cyan': '#78c0ff',
+    '--gold': '#c498ff',
+    '--font': 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
+    '--mono': 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace',
+    '--accent-border': '#1e4850'
   }
 };
 
