@@ -63,6 +63,7 @@ describe('CLI --theme HTML palette', () => {
       expect(result.stdout).toMatch(/fog/);
       expect(result.stdout).toMatch(/midnight/);
       expect(result.stdout).toMatch(/paper/);
+      expect(result.stdout).toMatch(/aurora/);
       expect(result.stdout).toMatch(/HTML/);
     }
     expect(generate.stdout).toMatch(/not config theme|与配置 theme 无关/);
@@ -119,7 +120,7 @@ describe('CLI --theme HTML palette', () => {
       expect(result.exitCode).not.toBe(0);
       const combined = result.stdout + result.stderr;
       expect(combined).toMatch(/Invalid --theme/);
-      expect(combined).toMatch(/ember, fog, midnight, paper/);
+      expect(combined).toMatch(/ember, fog, midnight, paper, aurora/);
       expect(result.stdout).not.toMatch(/<!DOCTYPE html>/i);
       expect(existsSync(join(testDir, 'README.md'))).toBe(false);
     }
@@ -179,6 +180,37 @@ describe('CLI --theme HTML palette', () => {
     expect(parsed.username).toBe('octocat');
     expect(result.stdout).not.toMatch(/<!DOCTYPE html>/i);
     expect(readFileSync(join(testDir, 'README.md'), 'utf-8')).toContain('octocat');
+  });
+
+  it('--theme aurora is accepted and differs from ember CSS/markers', () => {
+    const emberDir = mkdtempSync(join(tmpdir(), 'breathing-html-theme-ember-vs-'));
+    const auroraDir = mkdtempSync(join(tmpdir(), 'breathing-html-theme-aurora-'));
+    writeConfig(emberDir);
+    writeConfig(auroraDir);
+    const ember = runCli(
+      ['generate', '--html', '--theme', 'ember', '-c', 'config.yml', '-o', 'README.md'],
+      emberDir
+    );
+    const aurora = runCli(
+      ['generate', '--html', '--theme', 'aurora', '-c', 'config.yml', '-o', 'README.md'],
+      auroraDir
+    );
+    expectExit(ember, 0);
+    expectExit(aurora, 0);
+    expect(aurora.stdout).toMatch(/<!DOCTYPE html>/i);
+    expect(aurora.stdout).toContain(`--bg: ${THEME_TOKENS.aurora['--bg']};`);
+    expect(aurora.stdout).toContain(`--cyan: ${THEME_TOKENS.aurora['--cyan']};`);
+    expect(ember.stdout).toContain(`--bg: ${THEME_TOKENS.ember['--bg']};`);
+    expect(ember.stdout).toContain(`--cyan: ${THEME_TOKENS.ember['--cyan']};`);
+    expect(aurora.stdout).not.toContain(`--bg: ${THEME_TOKENS.ember['--bg']};`);
+    expect(THEME_TOKENS.aurora['--bg']).not.toBe(THEME_TOKENS.ember['--bg']);
+    expect(THEME_TOKENS.aurora['--cyan']).not.toBe(THEME_TOKENS.ember['--cyan']);
+    expect(aurora.stdout).toContain('class="marker"');
+    expect(ember.stdout).toContain('class="marker"');
+    expect(aurora.stdout).toContain('var(--accent-border)');
+    expect(ember.stdout).not.toContain('var(--accent-border)');
+    rmSync(emberDir, { recursive: true, force: true });
+    rmSync(auroraDir, { recursive: true, force: true });
   });
 
   it('refresh --theme midnight restyles HTML only', () => {

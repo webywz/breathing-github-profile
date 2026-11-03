@@ -147,6 +147,12 @@ describe('--locale flag', () => {
       expect(generate.stdout).toMatch(/fog/);
       expect(generate.stdout).toMatch(/midnight/);
       expect(generate.stdout).toMatch(/paper/);
+      expect(generate.stdout).toMatch(/aurora/);
+      expect(refresh.stdout).toMatch(/aurora/);
+      expect(generate.stdout).toMatch(/HTML preview palette:[\s\S]*aurora/);
+      expect(generate.stdout).toMatch(/预览配色：[\s\S]*aurora/);
+      expect(refresh.stdout).toMatch(/HTML preview palette:[\s\S]*aurora/);
+      expect(refresh.stdout).toMatch(/预览配色：[\s\S]*aurora/);
     });
 
     it('generate / refresh help lists --copy; init / validate do not', () => {

@@ -221,21 +221,45 @@ describe('formatProfileHtml', () => {
     expect(css.fog).toContain('var(--accent-border)');
     expect(css.midnight).toContain(`--bg: ${THEME_TOKENS.midnight['--bg']};`);
     expect(css.paper).toContain(`--bg: ${THEME_TOKENS.paper['--bg']};`);
+    expect(css.aurora).toContain(`--bg: ${THEME_TOKENS.aurora['--bg']};`);
+    expect(new Set(Object.values(css)).size).toBe(HTML_THEMES.length);
     expect(css.ember).not.toBe(css.fog);
     expect(css.ember).not.toBe(css.midnight);
     expect(css.ember).not.toBe(css.paper);
+    expect(css.ember).not.toBe(css.aurora);
     expect(css.fog).not.toBe(css.midnight);
     expect(css.fog).not.toBe(css.paper);
     expect(css.midnight).not.toBe(css.paper);
   });
+
+  it('aurora CSS and markers differ from ember', () => {
+    const input = sampleInput();
+    const ember = formatProfileHtml(input, { htmlTheme: 'ember' });
+    const aurora = formatProfileHtml(input, { htmlTheme: 'aurora' });
+    expect(aurora).not.toBe(ember);
+    expect(THEME_TOKENS.aurora['--bg']).not.toBe(THEME_TOKENS.ember['--bg']);
+    expect(THEME_TOKENS.aurora['--cyan']).not.toBe(THEME_TOKENS.ember['--cyan']);
+    expect(aurora).toContain(`--bg: ${THEME_TOKENS.aurora['--bg']};`);
+    expect(aurora).toContain(`--cyan: ${THEME_TOKENS.aurora['--cyan']};`);
+    expect(ember).toContain(`--cyan: ${THEME_TOKENS.ember['--cyan']};`);
+    expect(aurora).toContain('data-marker="STATS"');
+    expect(ember).toContain('data-marker="STATS"');
+    expect(aurora).toContain('class="marker"');
+    expect(aurora).toContain('var(--accent-border)');
+    expect(ember).not.toContain('var(--accent-border)');
+    expect(ember).toContain('border-color: #24582d;');
+    expect(aurora).toContain('.chip.accent { border-color: var(--accent-border); }');
+  });
 });
 
 describe('parseHtmlTheme / HTML_THEMES', () => {
-  it('accepts the four HTML palettes', () => {
-    expect(HTML_THEMES).toEqual(['ember', 'fog', 'midnight', 'paper']);
+  it('accepts the five HTML palettes including aurora', () => {
+    expect(HTML_THEMES).toEqual(['ember', 'fog', 'midnight', 'paper', 'aurora']);
     expect(parseHtmlTheme('ember')).toBe('ember');
     expect(parseHtmlTheme('fog')).toBe('fog');
+    expect(parseHtmlTheme('aurora')).toBe('aurora');
     expect(isHtmlTheme('paper')).toBe(true);
+    expect(isHtmlTheme('aurora')).toBe(true);
     expect(isHtmlTheme('light')).toBe(false);
   });
 
@@ -243,7 +267,7 @@ describe('parseHtmlTheme / HTML_THEMES', () => {
     expect(() => parseHtmlTheme(undefined)).toThrow(UsageError);
     expect(() => parseHtmlTheme('')).toThrow(/--theme requires one of/);
     expect(() => parseHtmlTheme('solar')).toThrow(/Invalid --theme "solar"/);
-    expect(() => parseHtmlTheme('light')).toThrow(/ember, fog, midnight, paper/);
+    expect(() => parseHtmlTheme('light')).toThrow(/ember, fog, midnight, paper, aurora/);
     expect(() => parseHtmlTheme('dark')).toThrow(UsageError);
     expect(() => parseHtmlTheme('auto')).toThrow(UsageError);
     try {
@@ -251,7 +275,7 @@ describe('parseHtmlTheme / HTML_THEMES', () => {
     } catch (err) {
       expect(err).toBeInstanceOf(UsageError);
       expect((err as Error).name).toBe('UsageError');
-      expect((err as Error).message).toMatch(/ember, fog, midnight, paper/);
+      expect((err as Error).message).toMatch(/ember, fog, midnight, paper, aurora/);
     }
   });
 });

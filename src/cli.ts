@@ -138,7 +138,7 @@ function htmlOption(): Option {
 function htmlThemeOption(): Option {
   return new Option(
     '--theme <name>',
-    `HTML preview palette: ember (default), fog, midnight, paper (--html only; not config theme) · HTML 预览配色：ember（默认）、fog、midnight、paper（仅 --html；与配置 theme 无关）`
+    `HTML preview palette: ember (default), fog, midnight, paper, aurora (--html only; not config theme) · HTML 预览配色：ember（默认）、fog、midnight、paper、aurora（仅 --html；与配置 theme 无关）`
   ).argParser((value: string) => {
     try {
       return parseHtmlTheme(value);
