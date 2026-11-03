@@ -125,6 +125,13 @@ describe('--locale flag', () => {
       expect(result.stdout).toMatch(/en\|zh/);
     });
 
+    it('root help lists --list-themes', () => {
+      const result = runCli(['--help'], testDir);
+      expectExit(result, 0);
+      expect(result.stdout).toMatch(/--list-themes/);
+      expect(result.stdout).toMatch(/JSON array|JSON 数组/);
+    });
+
     it('generate / refresh help lists --html [path]', () => {
       const generate = runCli(['generate', '--help'], testDir);
       const refresh = runCli(['refresh', '--help'], testDir);

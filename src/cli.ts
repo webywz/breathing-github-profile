@@ -10,6 +10,7 @@ import { GitHubClient } from './github';
 import { ReadmeGenerator, updateReadmeMarkers } from './generator';
 import {
   DEFAULT_HTML_THEME,
+  HTML_THEMES,
   HtmlTheme,
   formatProfileHtml,
   htmlWrittenLine,
@@ -149,6 +150,32 @@ function htmlThemeOption(): Option {
   });
 }
 
+function listThemesOption(): Option {
+  return new Option(
+    '--list-themes',
+    'Print HTML theme names (one per line; --json: JSON array) · 列出 HTML 主题名（每行一个；--json 为 JSON 数组）'
+  );
+}
+
+function wantsListThemes(argv: string[]): boolean {
+  if (argv.includes('--help') || argv.includes('-h')) return false;
+  if (argv.includes('--version') || argv.includes('-V')) return false;
+  return argv.includes('--list-themes');
+}
+
+function wantsJson(argv: string[]): boolean {
+  return argv.includes('--json') || argv.includes('-j');
+}
+
+/** Print `HTML_THEMES` in the same order as `--theme` / HTML palettes. */
+function printHtmlThemes(asJson: boolean): void {
+  if (asJson) {
+    console.log(JSON.stringify([...HTML_THEMES]));
+  } else {
+    console.log(HTML_THEMES.join('\n'));
+  }
+}
+
 function getHtmlTheme(options: { theme?: HtmlTheme }, program: Command): HtmlTheme {
   return options.theme ?? program.opts().theme ?? DEFAULT_HTML_THEME;
 }
@@ -207,7 +234,8 @@ program
   .option('-q, --quiet', 'Suppress spinner and success summary · 静默 spinner 与成功摘要')
   .option('--no-color', 'Disable colored output · 禁用彩色输出')
   .addOption(localeOption())
-  .addOption(htmlThemeOption());
+  .addOption(htmlThemeOption())
+  .addOption(listThemesOption());
 
 program
   .command('generate')
@@ -688,6 +716,11 @@ function escapeRegex(str: string): string {
 }
 
 export async function run(argv: string[], deps: CliDeps = {}): Promise<void> {
+  // List themes before Commander requires a generate/refresh/config path.
+  if (wantsListThemes(argv)) {
+    printHtmlThemes(wantsJson(argv));
+    return;
+  }
   await createProgram(deps).parseAsync(argv, { from: 'user' });
 }
 
@@ -699,5 +732,10 @@ function isDirectRun(): boolean {
 }
 
 if (isDirectRun()) {
-  createProgram().parse();
+  const argv = process.argv.slice(2);
+  if (wantsListThemes(argv)) {
+    printHtmlThemes(wantsJson(argv));
+  } else {
+    createProgram().parse();
+  }
 }
