@@ -18,6 +18,7 @@ import {
   resolveHtmlTarget,
   writeHtmlPreview
 } from './html';
+import { copyToClipboard } from './clipboard';
 import { readPackageVersion } from './version';
 import {
   BilingualError,
@@ -29,12 +30,33 @@ import {
   parseLocale
 } from './locale';
 
+export type CliDeps = {
+  copyToClipboard?: (text: string) => boolean;
+};
+
+/** Missing clipboard → skip silently. Helpers must not fail generate/refresh. */
+function maybeCopyReadme(
+  enabled: boolean | undefined,
+  markdown: string,
+  copy: (text: string) => boolean
+): void {
+  if (!enabled) return;
+  try {
+    copy(markdown);
+  } catch {
+    // Clipboard helpers must not fail the generate/refresh path.
+  }
+}
+
 function shouldDisableColor(options: { color?: boolean }): boolean {
   // Commander maps --no-color to { color: false } on the command (and program).
   return options.color === false || !!process.env.NO_COLOR;
 }
 
-function isColorDisabled(commandOptions: { color?: boolean }): boolean {
+function isColorDisabled(
+  commandOptions: { color?: boolean },
+  program: Command
+): boolean {
   return shouldDisableColor({
     color: commandOptions.color === false || program.opts().color === false
       ? false
@@ -91,18 +113,19 @@ function spinnerFail(
   spinner.fail(chalk.red(message));
 }
 
-const program = new Command();
-
-function isQuiet(options: { quiet?: boolean }): boolean {
+function isQuiet(options: { quiet?: boolean }, program: Command): boolean {
   return Boolean(options.quiet || program.opts().quiet);
 }
 
-function shouldPrintHuman(options: {
-  json?: boolean;
-  quiet?: boolean;
-  htmlOnStdout?: boolean;
-}): boolean {
-  return !options.json && !options.htmlOnStdout && !isQuiet(options);
+function shouldPrintHuman(
+  options: {
+    json?: boolean;
+    quiet?: boolean;
+    htmlOnStdout?: boolean;
+  },
+  program: Command
+): boolean {
+  return !options.json && !options.htmlOnStdout && !isQuiet(options, program);
 }
 
 function htmlOption(): Option {
@@ -126,7 +149,7 @@ function htmlThemeOption(): Option {
   });
 }
 
-function getHtmlTheme(options: { theme?: HtmlTheme }): HtmlTheme {
+function getHtmlTheme(options: { theme?: HtmlTheme }, program: Command): HtmlTheme {
   return options.theme ?? program.opts().theme ?? DEFAULT_HTML_THEME;
 }
 
@@ -138,6 +161,13 @@ function rejectHtmlJsonConflict(
     console.error(chalk.red(cliText(locale, HTML_JSON_CONFLICT)));
     process.exit(1);
   }
+}
+
+function copyOption(): Option {
+  return new Option(
+    '--copy',
+    'Copy written README markdown to clipboard (not JSON/HTML; skip if unavailable) · 将写出的 README Markdown 复制到剪贴板（非 JSON/HTML；无工具则静默跳过）'
+  );
 }
 
 function localeOption(): Option {
@@ -154,7 +184,7 @@ function localeOption(): Option {
   });
 }
 
-function getLocale(options: { locale?: Locale }): Locale | undefined {
+function getLocale(options: { locale?: Locale }, program: Command): Locale | undefined {
   return options.locale ?? program.opts().locale;
 }
 
@@ -165,6 +195,10 @@ function configNotFoundError(path: string): BilingualError {
     `配置文件不存在: ${path}`
   );
 }
+
+function createProgram(deps: CliDeps = {}): Command {
+  const copy = deps.copyToClipboard ?? copyToClipboard;
+  const program = new Command();
 
 program
   .name('breathing-profile')
@@ -183,17 +217,18 @@ program
   .option('-j, --json', 'Output JSON only · 仅输出 JSON')
   .addOption(htmlOption())
   .addOption(htmlThemeOption())
+  .addOption(copyOption())
   .option('-q, --quiet', 'Suppress spinner and success summary · 静默 spinner 与成功摘要')
   .option('--no-color', 'Disable colored output · 禁用彩色输出')
   .addOption(localeOption())
   .action(async (options) => {
-    const locale = getLocale(options);
-    const colorDisabled = isColorDisabled(options);
+    const locale = getLocale(options, program);
+    const colorDisabled = isColorDisabled(options, program);
     if (colorDisabled) {
       applyNoColor();
     }
     const htmlTarget = resolveHtmlTarget(options.html);
-    const htmlTheme = getHtmlTheme(options);
+    const htmlTheme = getHtmlTheme(options, program);
     rejectHtmlJsonConflict(options, locale);
     const { spinner, spinnerEnabled } = createSpinner(
       cliText(locale, {
@@ -203,7 +238,7 @@ program
       }),
       {
         json: options.json,
-        quiet: isQuiet(options),
+        quiet: isQuiet(options, program),
         htmlOnStdout: htmlTarget.onStdout,
         colorDisabled
       }
@@ -280,7 +315,7 @@ program
           bytes,
           sections
         }, null, 2));
-      } else if (shouldPrintHuman({ ...options, htmlOnStdout: htmlTarget.onStdout })) {
+      } else if (shouldPrintHuman({ ...options, htmlOnStdout: htmlTarget.onStdout }, program)) {
         spinnerSucceed(
           spinner,
           spinnerEnabled,
@@ -299,6 +334,8 @@ program
           console.log(chalk.gray(htmlWrittenLine(locale, htmlTarget.path)));
         }
       }
+
+      maybeCopyReadme(options.copy, readme, copy);
     } catch (error) {
       if (options.json) {
         console.log(JSON.stringify({
@@ -333,17 +370,18 @@ program
   .option('-j, --json', 'Output JSON only · 仅输出 JSON')
   .addOption(htmlOption())
   .addOption(htmlThemeOption())
+  .addOption(copyOption())
   .option('-q, --quiet', 'Suppress spinner and success summary · 静默 spinner 与成功摘要')
   .option('--no-color', 'Disable colored output · 禁用彩色输出')
   .addOption(localeOption())
   .action(async (options) => {
-    const locale = getLocale(options);
-    const colorDisabled = isColorDisabled(options);
+    const locale = getLocale(options, program);
+    const colorDisabled = isColorDisabled(options, program);
     if (colorDisabled) {
       applyNoColor();
     }
     const htmlTarget = resolveHtmlTarget(options.html);
-    const htmlTheme = getHtmlTheme(options);
+    const htmlTheme = getHtmlTheme(options, program);
     rejectHtmlJsonConflict(options, locale);
     const { spinner, spinnerEnabled } = createSpinner(
       cliText(locale, {
@@ -353,7 +391,7 @@ program
       }),
       {
         json: options.json,
-        quiet: isQuiet(options),
+        quiet: isQuiet(options, program),
         htmlOnStdout: htmlTarget.onStdout,
         colorDisabled
       }
@@ -453,7 +491,7 @@ program
           action: 'refreshed',
           path: options.readme
         }, null, 2));
-      } else if (shouldPrintHuman({ ...options, htmlOnStdout: htmlTarget.onStdout })) {
+      } else if (shouldPrintHuman({ ...options, htmlOnStdout: htmlTarget.onStdout }, program)) {
         spinnerSucceed(
           spinner,
           spinnerEnabled,
@@ -472,6 +510,8 @@ program
           console.log(chalk.gray(htmlWrittenLine(locale, htmlTarget.path)));
         }
       }
+
+      maybeCopyReadme(options.copy, updatedReadme, copy);
     } catch (error) {
       if (options.json) {
         console.log(JSON.stringify({
@@ -508,8 +548,8 @@ program
   .option('--no-color', 'Disable colored output · 禁用彩色输出')
   .addOption(localeOption())
   .action(async (options) => {
-    const locale = getLocale(options);
-    if (isColorDisabled(options)) {
+    const locale = getLocale(options, program);
+    if (isColorDisabled(options, program)) {
       applyNoColor();
     }
     try {
@@ -564,7 +604,7 @@ program
           action,
           path: outputPath
         }, null, 2));
-      } else if (shouldPrintHuman(options)) {
+      } else if (shouldPrintHuman(options, program)) {
         console.log(chalk.green(cliText(locale, {
           both: `✓ Config created / 配置文件已创建: ${outputPath}`,
           en: `✓ Config created: ${outputPath}`,
@@ -600,8 +640,8 @@ program
   .option('--no-color', 'Disable colored output · 禁用彩色输出')
   .addOption(localeOption())
   .action(async (options) => {
-    const locale = getLocale(options);
-    if (isColorDisabled(options)) {
+    const locale = getLocale(options, program);
+    if (isColorDisabled(options, program)) {
       applyNoColor();
     }
     try {
@@ -613,7 +653,7 @@ program
       
       if (options.json) {
         console.log(JSON.stringify({ ok: true, config }, null, 2));
-      } else if (shouldPrintHuman(options)) {
+      } else if (shouldPrintHuman(options, program)) {
         console.log(chalk.green(cliText(locale, {
           both: '✓ Config valid / 配置文件有效',
           en: '✓ Config valid',
@@ -640,8 +680,24 @@ program
     }
   });
 
+  return program;
+}
+
 function escapeRegex(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-program.parse();
+export async function run(argv: string[], deps: CliDeps = {}): Promise<void> {
+  await createProgram(deps).parseAsync(argv, { from: 'user' });
+}
+
+function isDirectRun(): boolean {
+  if (require.main === module) return true;
+  const entry = process.argv[1];
+  if (!entry) return false;
+  return /(cli\.(js|ts)|breathing-profile)$/.test(entry);
+}
+
+if (isDirectRun()) {
+  createProgram().parse();
+}

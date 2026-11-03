@@ -21,6 +21,7 @@ Package: `@webywz/breathing-github-profile` · CLI binary: `breathing-profile` �
 | Sections | `stats` · `languages` · `repos` · `custom` | 四种章节类型 |
 | Automation | Daily GitHub Actions workflow | Actions 每日定时刷新 |
 | HTML | `--html [path]` self-contained offline preview (no CDN); `--theme` restyles chrome only | `--html [path]` 自包含离线预览（无 CDN）；`--theme` 只改预览外壳配色 |
+| Clipboard | `generate` / `refresh --copy` copies the written README markdown (skip if no clipboard tool) | `generate` / `refresh --copy` 复制写出的 README Markdown（无剪贴板工具则跳过） |
 | API | CLI commands + TypeScript library exports | CLI + 库 |
 
 Live example: [webywz/webywz](https://github.com/webywz/webywz).
@@ -115,11 +116,13 @@ npx breathing-profile generate -c config.yml -o README.md --json  # machine-read
 npx breathing-profile generate -c config.yml -o README.md --html  # self-contained HTML preview on stdout
 npx breathing-profile generate -c config.yml -o README.md --html preview.html
 npx breathing-profile generate -c config.yml -o README.md --html --theme paper
+npx breathing-profile generate -c config.yml -o README.md --copy  # README markdown → clipboard
 npx breathing-profile refresh  -c config.yml -r README.md
 npx breathing-profile refresh  -c config.yml -r README.md --json  # machine-readable CI output
 npx breathing-profile refresh  -c config.yml -r README.md --html
 npx breathing-profile refresh  -c config.yml -r README.md --html preview.html
 npx breathing-profile refresh  -c config.yml -r README.md --html --theme fog
+npx breathing-profile refresh  -c config.yml -r README.md --copy
 npx breathing-profile validate -c config.yml
 npx breathing-profile validate -c config.yml --json  # machine-readable CI output
 npx breathing-profile generate --no-color  # disable colored output
@@ -139,12 +142,14 @@ npx breathing-profile validate --locale zh # Chinese-only human messages
 | `generate --json` | Generate and output JSON (for CI) | 生成 README 并输出 JSON（供 CI 使用） |
 | `generate --html [path]` | Generate; write a self-contained HTML preview (stdout or file) | 生成 README，并写出自包含 HTML 预览（stdout 或文件） |
 | `generate --theme <name>` | HTML preview palette only (`ember` default, `fog`, `midnight`, `paper`) | 仅改 HTML 预览配色（默认 `ember`） |
+| `generate --copy` | Copy written README markdown to clipboard (not JSON/HTML) | 将写出的 README Markdown 复制到剪贴板（不是 JSON/HTML） |
 | `generate --quiet` | Generate; no spinner / success summary | 生成 README，不打印 spinner 与成功摘要 |
 | `generate --locale en\|zh` | Spinner / summary / errors in one language | spinner、摘要与错误只用一种语言 |
 | `refresh` | Rewrite marker sections only | 只刷新标记区 |
 | `refresh --json` | Refresh markers; output JSON (for CI) | 刷新标记区，输出 JSON（供 CI 使用） |
 | `refresh --html [path]` | Refresh; write a self-contained HTML preview (stdout or file) | 刷新标记区，并写出自包含 HTML 预览（stdout 或文件） |
 | `refresh --theme <name>` | HTML preview palette only (`ember` default, `fog`, `midnight`, `paper`) | 仅改 HTML 预览配色（默认 `ember`） |
+| `refresh --copy` | Copy updated README markdown to clipboard (not JSON/HTML) | 将更新后的 README Markdown 复制到剪贴板（不是 JSON/HTML） |
 | `refresh --quiet` | Refresh; no spinner / success summary | 刷新标记区，不打印 spinner 与成功摘要 |
 | `refresh --locale en\|zh` | Spinner / summary / errors in one language | spinner、摘要与错误只用一种语言 |
 | `validate` | Check the config file | 校验配置 |
@@ -171,6 +176,18 @@ By default, the CLI uses colored output (via ANSI escape codes). To disable:
 npx breathing-profile generate --quiet -c config.yml -o README.md
 npx breathing-profile --quiet validate -c config.yml
 npx breathing-profile generate --quiet --json -c config.yml -o README.md  # JSON unchanged
+```
+
+**Clipboard · 剪贴板**
+
+`--copy` on `generate` / `refresh` copies the README markdown body that was written to `-o` / `-r` (the file contents, not the pretty terminal summary). With `--json` or `--html` as the primary export, it still copies that markdown body — never the JSON blob or HTML chrome. No `pbcopy` / `wl-copy` / `xclip` / `xsel` / `clip` → skip silently (exit 0 unless something else fails). Not added to `init` / `validate`.
+
+`--copy` 用于 `generate` / `refresh`：复制写入 `-o` / `-r` 的 README Markdown 正文（文件内容，不是终端摘要）。即使主要导出是 `--json` 或 `--html`，仍复制这份 Markdown，而不是 JSON 或 HTML 外壳。没有 `pbcopy` / `wl-copy` / `xclip` / `xsel` / `clip` 则静默跳过（除非另有失败，否则退出码仍为 0）。`init` / `validate` 不提供此旗标。
+
+```bash
+npx breathing-profile generate --copy -c config.yml -o README.md
+npx breathing-profile generate --copy --json -c config.yml -o README.md   # still copies README markdown
+npx breathing-profile refresh  --copy --html -c config.yml -r README.md   # still copies README markdown
 ```
 
 **Locale · 语言**
@@ -459,7 +476,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: npm i @webywz/breathing-github-profile@1.1.12
+      - run: npm i @webywz/breathing-github-profile@1.1.13
       - name: Refresh README
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -518,6 +535,7 @@ src/
   config.ts      load / validate
   github.ts      GitHub client
   generator.ts   README generate + marker update
+  clipboard.ts   --copy helper (pbcopy / wl-copy / xclip / xsel / clip)
   cli.ts         CLI
   index.ts       library entry
 examples/        sample configs
