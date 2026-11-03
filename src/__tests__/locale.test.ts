@@ -148,6 +148,23 @@ describe('--locale flag', () => {
       expect(generate.stdout).toMatch(/midnight/);
       expect(generate.stdout).toMatch(/paper/);
     });
+
+    it('generate / refresh help lists --copy; init / validate do not', () => {
+      const generate = runCli(['generate', '--help'], testDir);
+      const refresh = runCli(['refresh', '--help'], testDir);
+      const init = runCli(['init', '--help'], testDir);
+      const validate = runCli(['validate', '--help'], testDir);
+      expectExit(generate, 0);
+      expectExit(refresh, 0);
+      expectExit(init, 0);
+      expectExit(validate, 0);
+      expect(generate.stdout).toMatch(/--copy/);
+      expect(refresh.stdout).toMatch(/--copy/);
+      expect(generate.stdout).toMatch(/clipboard|剪贴板/);
+      expect(refresh.stdout).toMatch(/README Markdown|README markdown/);
+      expect(init.stdout).not.toMatch(/--copy/);
+      expect(validate.stdout).not.toMatch(/--copy/);
+    });
   });
 
   describe('init', () => {
